@@ -207,7 +207,7 @@ macOS 默认状态文件：
 ~/Library/Application Support/cbssh/state.json
 ```
 
-日志默认保存在状态文件同级的 `logs` 目录。`cbssh status` 会显示每个活跃 tunnel 的 PID 和日志路径。
+日志默认保存在状态文件同级的 `logs` 目录。`cbssh status` 会显示每个活跃 tunnel 的 PID 和日志路径。同一主机下的多个 tunnel 会优先复用同一个后台 daemon 和 SSH client，因此可能显示相同 PID。
 
 状态文件会记录后台进程身份指纹。清理状态和停止 tunnel 时，程序会校验 PID 是否仍然对应同一个 `cbssh daemon`，避免 PID 被系统回收或重启后误把其他进程当作活跃 tunnel，或误杀无关进程。
 
@@ -225,11 +225,3 @@ chmod 600 ~/.config/cbssh/config.toml
 
 - `insecure`：默认值，不校验 host key
 - `known_hosts`：使用 `~/.ssh/known_hosts` 校验
-
-## TODO
-
-- 每个 tunnel 使用独立后台进程，便于单独停止；后续可以优化成同一连接下多个 tunnel 复用一个 SSH client。
-
-## 已知问题
-
-- 暂无。

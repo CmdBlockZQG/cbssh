@@ -62,20 +62,21 @@ type HostRuntime struct {
 }
 
 type TunnelRuntime struct {
-	ID         string    `json:"id"`
-	RunID      string    `json:"run_id"`
-	HostName   string    `json:"host_name"`
-	TunnelName string    `json:"tunnel_name"`
-	Type       string    `json:"type"`
-	PID        int       `json:"pid"`
-	ProcessKey string    `json:"process_key,omitempty"`
-	ListenHost string    `json:"listen_host"`
-	ListenPort int       `json:"listen_port"`
-	TargetHost string    `json:"target_host,omitempty"`
-	TargetPort int       `json:"target_port,omitempty"`
-	JumpChain  []string  `json:"jump_chain,omitempty"`
-	StartedAt  time.Time `json:"started_at"`
-	LogPath    string    `json:"log_path"`
+	ID          string    `json:"id"`
+	RunID       string    `json:"run_id"`
+	HostName    string    `json:"host_name"`
+	TunnelName  string    `json:"tunnel_name"`
+	Type        string    `json:"type"`
+	PID         int       `json:"pid"`
+	ProcessKey  string    `json:"process_key,omitempty"`
+	ControlPath string    `json:"control_path,omitempty"`
+	ListenHost  string    `json:"listen_host"`
+	ListenPort  int       `json:"listen_port"`
+	TargetHost  string    `json:"target_host,omitempty"`
+	TargetPort  int       `json:"target_port,omitempty"`
+	JumpChain   []string  `json:"jump_chain,omitempty"`
+	StartedAt   time.Time `json:"started_at"`
+	LogPath     string    `json:"log_path"`
 }
 
 func (c *Config) Normalize() {

@@ -385,6 +385,10 @@ func (a *app) runTunnelStart(cmd *cobra.Command, hostName string, names []string
 		return err
 	}
 	_ = state.MarkHostUsed(a.statePath, hostName, time.Now())
+	if len(entries) == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "No inactive default tunnels to start.")
+		return nil
+	}
 	for _, entry := range entries {
 		fmt.Fprintf(cmd.OutOrStdout(), "Started %s/%s on %s (pid %d)\n", entry.HostName, entry.TunnelName, entry.ListenAddress(), entry.PID)
 	}
