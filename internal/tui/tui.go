@@ -90,6 +90,8 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			err = deleteHost(reader, configPath, cfg, firstArg(choice.Args))
 		case "t":
 			err = manageTunnels(ctx, reader, configPath, statePath, cfg, firstArg(choice.Args))
+		case "i":
+			err = showHost(reader, statePath, cfg, firstArg(choice.Args))
 		case "s":
 			err = startTunnels(ctx, reader, statePath, configPath, cfg, choice.Args)
 		case "x":
@@ -124,7 +126,7 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 		fmt.Println(strings.Repeat("─", 80))
 	}
 	fmt.Printf("Config: %s%s%s", styleDim, configPath, styleReset)
-	fmt.Printf("  Hosts: %d  Active: %d\n\n", len(cfg.Hosts), len(st.Tunnels))
+	fmt.Printf("  Hosts: %d  Active Tunnels: %d\n\n", len(cfg.Hosts), len(st.Tunnels))
 	if len(cfg.Hosts) == 0 {
 		fmt.Println("No hosts configured.")
 	} else {
@@ -161,8 +163,8 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 		}
 	}
 	fmt.Println()
-	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels  %s[i]%s info\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
@@ -170,15 +172,16 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 func printMainHelp() {
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Printf("  %sc <host>%s               connect to host <host>\n", styleBold, styleReset)
-	fmt.Printf("  %sa%s                      add a new host\n", styleBold, styleReset)
-	fmt.Printf("  %se <host>%s               edit host <host>\n", styleBold, styleReset)
-	fmt.Printf("  %sd <host>%s               delete host <host>\n", styleBold, styleReset)
-	fmt.Printf("  %st <host>%s               enter tunnel menu for host <host>\n", styleBold, styleReset)
-	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels, blank <tun> = defaults\n", styleBold, styleReset)
-	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels, blank <host> = all, blank <tun> = all\n", styleBold, styleReset)
+	fmt.Printf("  %sc <host>%s               connect to host\n", styleBold, styleReset)
+	fmt.Printf("  %sa%s                      add host\n", styleBold, styleReset)
+	fmt.Printf("  %se <host>%s               edit host\n", styleBold, styleReset)
+	fmt.Printf("  %sd <host>%s               delete host\n", styleBold, styleReset)
+	fmt.Printf("  %st <host>%s               tunnel menu\n", styleBold, styleReset)
+	fmt.Printf("  %si <host>%s               show host info\n", styleBold, styleReset)
+	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels\n", styleBold, styleReset)
+	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels\n", styleBold, styleReset)
 	fmt.Printf("  %sv%s                      validate config\n", styleBold, styleReset)
-	fmt.Printf("  %s?%s                      show this help\n", styleBold, styleReset)
+	fmt.Printf("  %s?%s                      help\n", styleBold, styleReset)
 	fmt.Printf("  %sq%s                      quit\n", styleBold, styleReset)
 	fmt.Println()
 	fmt.Printf("  %s<host>%s = host name or number\n", styleBold, styleReset)
@@ -366,8 +369,8 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 func printTunnelHelp(hostName string) {
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Printf("  %ss [<tun>..]%s   start tunnels, blank = defaults\n", styleBold, styleReset)
-	fmt.Printf("  %sx [<tun>..]%s   stop tunnels, blank = all\n", styleBold, styleReset)
+	fmt.Printf("  %ss [<tun>..]%s   start tunnels\n", styleBold, styleReset)
+	fmt.Printf("  %sx [<tun>..]%s   stop tunnels\n", styleBold, styleReset)
 	fmt.Printf("  %sa%s             add a new tunnel\n", styleBold, styleReset)
 	fmt.Printf("  %se <tun>%s       edit tunnel <tun>\n", styleBold, styleReset)
 	fmt.Printf("  %sd <tun>%s       delete tunnel <tun>\n", styleBold, styleReset)
@@ -531,6 +534,60 @@ func connectHost(ctx context.Context, reader *bufio.Reader, configPath string, s
 		fmt.Printf("\n%sSSH error: %v%s\n", styleRed+styleBold, err, styleReset)
 	}
 	os.Exit(0)
+	return nil
+}
+
+func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector string) error {
+	index, err := selectHost(reader, cfg, selector)
+	if err != nil {
+		return err
+	}
+	host := cfg.Hosts[index]
+	chain, err := config.ResolveJumpNames(cfg, host.Name)
+	if err != nil {
+		return err
+	}
+	st, _, err := tunnel.Status(statePath, host.Name)
+	if err != nil {
+		return err
+	}
+	active := map[string]model.TunnelRuntime{}
+	for _, entry := range st.Tunnels {
+		active[entry.TunnelName] = entry
+	}
+
+	fmt.Println()
+	fmt.Printf("%s%s%s\n", styleBold, host.Name, styleReset)
+	fmt.Println(strings.Repeat("─", 40))
+	fmt.Printf("Host: %s\n", host.Address())
+	fmt.Printf("User: %s\n", host.User)
+	jump := strings.Join(chain, " -> ")
+	fmt.Printf("Jump: %s\n", emptyDash(jump))
+	fmt.Printf("Tags: %s\n", emptyDash(strings.Join(host.Tags, ", ")))
+	authLine := host.Auth.Type
+	if host.Auth.Type == model.AuthTypeKey {
+		authLine += " " + host.Auth.KeyPath
+	}
+	fmt.Printf("Auth: %s\n", authLine)
+	fmt.Println()
+	if len(host.Tunnels) == 0 {
+		fmt.Println("Tunnels: none")
+	} else {
+		fmt.Printf("%s%-4s %-12s %-8s %-22s %-22s %-7s %-6s%s\n",
+			styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "ACT", styleReset)
+		for i, tun := range host.Tunnels {
+			_, isActive := active[tun.Name]
+			actMark := " " + styleDim + "○" + styleReset
+			if isActive {
+				actMark = " " + styleGreen + "●" + styleReset
+			}
+			fmt.Printf(" %-3d %-12s %-8s %-22s %-22s %-7t%s\n",
+				i+1, tun.Name, tun.Type,
+				tun.ListenAddress(), emptyDash(tun.TargetAddress()),
+				tun.Default, actMark)
+		}
+	}
+	waitEnter(reader)
 	return nil
 }
 

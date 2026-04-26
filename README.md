@@ -119,7 +119,7 @@ cbssh ls --tag prod
 查看连接详情：
 
 ```bash
-cbssh show <name>
+cbssh info <name>
 ```
 
 连接 SSH 终端：

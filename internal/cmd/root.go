@@ -46,7 +46,7 @@ func NewRootCommand(version string) *cobra.Command {
 
 	root.AddCommand(a.newTUICommand())
 	root.AddCommand(a.newLSCommand())
-	root.AddCommand(a.newShowCommand())
+	root.AddCommand(a.newInfoCommand())
 	root.AddCommand(a.newConnectCommand())
 	root.AddCommand(a.newTunnelCommand())
 	root.AddCommand(a.newStatusCommand())
@@ -120,9 +120,9 @@ func (a *app) newLSCommand() *cobra.Command {
 	return c
 }
 
-func (a *app) newShowCommand() *cobra.Command {
+func (a *app) newInfoCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "show <name>",
+		Use:   "info <name>",
 		Short: "Show SSH host details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
