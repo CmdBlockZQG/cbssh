@@ -35,6 +35,7 @@ type daemonCommand struct {
 	Response chan controlResponse
 }
 
+// controlSocketPath hashes run IDs so socket names stay short on Unix systems.
 func controlSocketPath(statePath string, runID string) string {
 	statePath = platform.ExpandPath(statePath)
 	if statePath == "" {
@@ -45,6 +46,7 @@ func controlSocketPath(statePath string, runID string) string {
 	return filepath.Join(filepath.Dir(statePath), "sockets", name)
 }
 
+// listenControl creates a private Unix socket used for same-user daemon control.
 func listenControl(path string) (net.Listener, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, err
@@ -62,6 +64,7 @@ func listenControl(path string) (net.Listener, error) {
 	return listener, nil
 }
 
+// serveControl accepts control connections until the daemon context is canceled.
 func serveControl(ctx context.Context, listener net.Listener, commands chan<- daemonCommand) {
 	go func() {
 		<-ctx.Done()
@@ -76,6 +79,7 @@ func serveControl(ctx context.Context, listener net.Listener, commands chan<- da
 	}
 }
 
+// handleControlConn decodes one request and synchronously waits for the daemon loop.
 func handleControlConn(ctx context.Context, conn net.Conn, commands chan<- daemonCommand) {
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(controlTimeout))
@@ -99,6 +103,7 @@ func handleControlConn(ctx context.Context, conn net.Conn, commands chan<- daemo
 	}
 }
 
+// sendControl verifies the recorded process identity before using its socket.
 func sendControl(ctx context.Context, entry model.TunnelRuntime, req controlRequest) (controlResponse, error) {
 	if entry.ControlPath == "" {
 		return controlResponse{}, errors.New("control path is unavailable")

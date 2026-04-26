@@ -63,6 +63,18 @@ func TestSelectTunnelsUsesDefaultWhenNamesAreEmpty(t *testing.T) {
 	}
 }
 
+func TestSelectTunnelsRejectsDuplicateNames(t *testing.T) {
+	h := host("target", "")
+	h.Tunnels = []model.Tunnel{
+		tunnel("tun1", true),
+	}
+
+	_, err := SelectTunnels(h, []string{"tun1", "tun1"})
+	if err == nil || !strings.Contains(err.Error(), "duplicate selected tunnel") {
+		t.Fatalf("SelectTunnels error = %v, want duplicate selected tunnel error", err)
+	}
+}
+
 func TestLoadRejectsUnknownFields(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.toml")

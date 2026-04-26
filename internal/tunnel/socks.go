@@ -22,6 +22,10 @@ func handleSOCKS5(local net.Conn, client dialer) {
 	if _, err := io.ReadFull(local, methods); err != nil {
 		return
 	}
+	if !supportsSOCKSNoAuth(methods) {
+		_, _ = local.Write([]byte{0x05, 0xff})
+		return
+	}
 	if _, err := local.Write([]byte{0x05, 0x00}); err != nil {
 		return
 	}
@@ -57,6 +61,16 @@ func handleSOCKS5(local net.Conn, client dialer) {
 
 	done := pipe(local, remote)
 	<-done
+}
+
+// supportsSOCKSNoAuth reports whether the client offered RFC 1928 no-auth mode.
+func supportsSOCKSNoAuth(methods []byte) bool {
+	for _, method := range methods {
+		if method == 0x00 {
+			return true
+		}
+	}
+	return false
 }
 
 func readSOCKSAddress(r io.Reader, addressType byte) (string, error) {

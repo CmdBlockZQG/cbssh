@@ -379,7 +379,7 @@ func (a *app) runTunnelStart(cmd *cobra.Command, hostName string, names []string
 		ConfigPath:  a.configPath,
 		StatePath:   a.statePath,
 		HostName:    hostName,
-		TunnelNames: names,
+		TunnelNames: splitTunnelArgs(names),
 	})
 	if err != nil {
 		return err
@@ -400,7 +400,7 @@ func (a *app) runTunnelStop(cmd *cobra.Command, args []string) error {
 	var names []string
 	if len(args) > 0 {
 		hostName = args[0]
-		names = args[1:]
+		names = splitTunnelArgs(args[1:])
 	}
 	stopped, err := tunnel.Stop(cmd.Context(), a.statePath, hostName, names)
 	if err != nil {
@@ -444,6 +444,10 @@ func (a *app) runTunnelStatus(cmd *cobra.Command, hostName string) error {
 		)
 	}
 	return nil
+}
+
+func splitTunnelArgs(args []string) []string {
+	return tunnel.SplitTunnelNames(strings.Join(args, ","))
 }
 
 func emptyDash(value string) string {
