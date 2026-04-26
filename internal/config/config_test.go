@@ -50,16 +50,16 @@ func TestValidateRejectsJumpCycle(t *testing.T) {
 func TestSelectTunnelsUsesDefaultWhenNamesAreEmpty(t *testing.T) {
 	h := host("target", "")
 	h.Tunnels = []model.Tunnel{
-		tunnel("db", true),
-		tunnel("redis", false),
+		tunnel("tun1", true),
+		tunnel("tun2", false),
 	}
 
 	selected, err := SelectTunnels(h, nil)
 	if err != nil {
 		t.Fatalf("SelectTunnels returned error: %v", err)
 	}
-	if len(selected) != 1 || selected[0].Name != "db" {
-		t.Fatalf("selected = %#v, want only db", selected)
+	if len(selected) != 1 || selected[0].Name != "tun1" {
+		t.Fatalf("selected = %#v, want only tun1", selected)
 	}
 }
 

@@ -119,29 +119,29 @@ cbssh ls --tag prod
 查看连接详情：
 
 ```bash
-cbssh show prod-db
+cbssh show <name>
 ```
 
 连接 SSH 终端：
 
 ```bash
-cbssh connect prod-db
-cbssh c prod-db
+cbssh connect <name>
+cbssh c <name>
 ```
 
 启动 tunnel：
 
 ```bash
-cbssh tunnel prod-db
-cbssh tunnel start prod-db
-cbssh tunnel start prod-db mysql socks
+cbssh tunnel <name>
+cbssh tunnel start <name>
+cbssh tunnel start <name> <tun> <tun>
 ```
 
 查看 tunnel 状态：
 
 ```bash
 cbssh status
-cbssh status prod-db
+cbssh status <name>
 cbssh tunnel status
 ```
 
@@ -149,9 +149,9 @@ cbssh tunnel status
 
 ```bash
 cbssh stop
-cbssh stop prod-db
-cbssh stop prod-db mysql
-cbssh tunnel stop prod-db mysql
+cbssh stop <name>
+cbssh stop <name> <tun>
+cbssh tunnel stop <name> <tun>
 ```
 
 校验配置：
@@ -227,8 +227,6 @@ chmod 600 ~/.config/cbssh/config.toml
 - `insecure`：默认值，不校验 host key
 - `known_hosts`：使用 `~/.ssh/known_hosts` 校验
 
-## 当前取舍
+## TODO
 
 - 每个 tunnel 使用独立后台进程，便于单独停止；后续可以优化成同一连接下多个 tunnel 复用一个 SSH client。
-- TUI 当前是基础交互式菜单，后续可以替换为更完整的全屏 Bubble Tea 界面。
-- 暂不支持开机自启。
