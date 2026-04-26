@@ -62,7 +62,6 @@ name = "bastion"
 host = "203.0.113.10"
 port = 22
 user = "ubuntu"
-tags = ["prod"]
 
 [hosts.auth]
 type = "key"
@@ -74,7 +73,6 @@ host = "10.0.1.20"
 port = 22
 user = "ubuntu"
 jump = "bastion"
-tags = ["prod", "db"]
 
 [hosts.auth]
 type = "password"
@@ -113,7 +111,6 @@ cbssh tui
 ```bash
 cbssh ls
 cbssh ls --sort name
-cbssh ls --tag prod
 ```
 
 查看连接详情：
@@ -134,7 +131,7 @@ cbssh c <name>
 ```bash
 cbssh tunnel <name>
 cbssh tunnel start <name>
-cbssh tunnel start <name> <tun> <tun>
+cbssh tunnel start <name> [<tun>, <tun>, ...]
 ```
 
 查看 tunnel 状态：

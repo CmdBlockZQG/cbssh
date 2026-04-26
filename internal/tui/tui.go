@@ -130,14 +130,14 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 	if len(cfg.Hosts) == 0 {
 		fmt.Println("No hosts configured.")
 	} else {
-		fmt.Printf("%s%-4s %-22s %-24s %-14s %-8s %-8s%s\n", styleBold, "NO", "NAME", "HOST", "USER", "TUN", "ACT", styleReset)
+		fmt.Printf("%s%-4s %-16s %-21s %-10s %-5s %-5s%s\n", styleBold, "NO", "NAME", "HOST", "USER", "TUN", "ACT", styleReset)
 		for i, host := range cfg.Hosts {
 			count := active[host.Name]
 			countStr := strconv.Itoa(count)
 			if count > 0 {
 				countStr = styleGreen + countStr + styleReset
 			}
-			fmt.Printf(" %-3d %-22s %-24s %-14s %-8d %-8s\n",
+			fmt.Printf(" %-3d %-16s %-21s %-10s %-5d %-5s\n",
 				i+1,
 				host.Name,
 				host.Address(),
@@ -149,9 +149,9 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 	}
 	if len(st.Tunnels) > 0 {
 		fmt.Println()
-		fmt.Printf("%s%-22s %-18s %-9s %-22s %-8s%s\n", styleBold, "ACTIVE HOST", "TUNNEL", "TYPE", "LISTEN", "PID", styleReset)
+		fmt.Printf("%s%-16s %-16s %-7s %-21s %-7s%s\n", styleBold, "ACTIVE HOST", "TUNNEL", "TYPE", "LISTEN", "PID", styleReset)
 		for _, entry := range st.Tunnels {
-			fmt.Printf("%s%-22s %-18s %-9s %-22s %-8d%s\n",
+			fmt.Printf("%s%-16s %-16s %-7s %-21s %-7d%s\n",
 				styleGreen,
 				entry.HostName,
 				entry.TunnelName,
@@ -196,7 +196,6 @@ func addHost(reader *bufio.Reader, configPath string, cfg model.Config) error {
 	host.Port = promptPort(reader, "Port", 22)
 	host.User = promptRequiredString(reader, "User", os.Getenv("USER"))
 	host.Jump = promptString(reader, "Jump host name", "")
-	host.Tags = splitCSV(promptString(reader, "Tags", ""))
 	host.Auth.Type = promptAuthType(reader, model.AuthTypeKey)
 	if host.Auth.Type == model.AuthTypePassword {
 		host.Auth.Password = promptRequiredString(reader, "Password", "")
@@ -220,7 +219,6 @@ func editHost(reader *bufio.Reader, configPath string, cfg model.Config, selecto
 	host.Port = promptPort(reader, "Port", host.Port)
 	host.User = promptRequiredString(reader, "User", host.User)
 	host.Jump = promptString(reader, "Jump host name", host.Jump)
-	host.Tags = splitCSV(promptString(reader, "Tags", strings.Join(host.Tags, ",")))
 	host.Auth.Type = promptAuthType(reader, host.Auth.Type)
 	if host.Auth.Type == model.AuthTypePassword {
 		if host.Auth.Password == "" {
@@ -293,21 +291,25 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 		if len(host.Tunnels) == 0 {
 			fmt.Println("No tunnels configured.")
 		} else {
-			fmt.Printf("%s%-4s %-18s %-9s %-22s %-22s %-8s %-8s%s\n", styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "ACT", styleReset)
+			fmt.Printf("%s%-4s %-16s %-7s %-21s %-21s %-3s %-7s%s\n", styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "PID", styleReset)
 			for i, tun := range host.Tunnels {
 				_, isActive := active[tun.Name]
-				activeMark := " " + styleGreen + "●" + styleReset
-				if !isActive {
-					activeMark = " " + styleDim + "○" + styleReset
+				pid := "-"
+				if isActive {
+					pid = strconv.Itoa(active[tun.Name].PID)
 				}
-				fmt.Printf(" %-3d %-18s %-9s %-22s %-22s %-8t%s\n",
+				def := 0
+				if tun.Default {
+					def = 1
+				}
+				fmt.Printf(" %-3d %-16s %-7s %-21s %-21s %-3d %-7s\n",
 					i+1,
 					tun.Name,
 					tun.Type,
 					tun.ListenAddress(),
 					emptyDash(tun.TargetAddress()),
-					tun.Default,
-					activeMark,
+					def,
+					pid,
 				)
 			}
 		}
@@ -563,7 +565,6 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 	fmt.Printf("User: %s\n", host.User)
 	jump := strings.Join(chain, " -> ")
 	fmt.Printf("Jump: %s\n", emptyDash(jump))
-	fmt.Printf("Tags: %s\n", emptyDash(strings.Join(host.Tags, ", ")))
 	authLine := host.Auth.Type
 	if host.Auth.Type == model.AuthTypeKey {
 		authLine += " " + host.Auth.KeyPath
@@ -573,18 +574,22 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 	if len(host.Tunnels) == 0 {
 		fmt.Println("Tunnels: none")
 	} else {
-		fmt.Printf("%s%-4s %-12s %-8s %-22s %-22s %-7s %-6s%s\n",
-			styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "ACT", styleReset)
+		fmt.Printf("%s%-4s %-16s %-7s %-21s %-21s %-3s %-7s%s\n",
+			styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "PID", styleReset)
 		for i, tun := range host.Tunnels {
 			_, isActive := active[tun.Name]
-			actMark := " " + styleDim + "○" + styleReset
+			pid := "-"
 			if isActive {
-				actMark = " " + styleGreen + "●" + styleReset
+				pid = strconv.Itoa(active[tun.Name].PID)
 			}
-			fmt.Printf(" %-3d %-12s %-8s %-22s %-22s %-7t%s\n",
+			def := 0
+			if tun.Default {
+				def = 1
+			}
+			fmt.Printf(" %-3d %-16s %-7s %-21s %-21s %-3d %-7s\n",
 				i+1, tun.Name, tun.Type,
 				tun.ListenAddress(), emptyDash(tun.TargetAddress()),
-				tun.Default, actMark)
+				def, pid)
 		}
 	}
 	waitEnter(reader)
@@ -890,21 +895,6 @@ func readLine(reader *bufio.Reader) (string, error) {
 func waitEnter(reader *bufio.Reader) {
 	fmt.Print("Press Enter to continue...")
 	_, _ = reader.ReadString('\n')
-}
-
-func splitCSV(value string) []string {
-	if value == "" {
-		return nil
-	}
-	parts := strings.Split(value, ",")
-	var out []string
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			out = append(out, part)
-		}
-	}
-	return out
 }
 
 func splitArgs(value string) []string {

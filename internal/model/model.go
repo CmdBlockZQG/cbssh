@@ -29,7 +29,6 @@ type Host struct {
 	Port    int      `toml:"port"`
 	User    string   `toml:"user"`
 	Jump    string   `toml:"jump,omitempty"`
-	Tags    []string `toml:"tags,omitempty"`
 	Auth    Auth     `toml:"auth"`
 	Tunnels []Tunnel `toml:"tunnels,omitempty"`
 }
