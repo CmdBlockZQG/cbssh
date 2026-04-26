@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,7 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 	reader := bufio.NewReader(os.Stdin)
 	defer func() { stdinClosed = true }()
 	var lastCfg model.Config
+	sortRecent := true
 	for {
 		select {
 		case <-ctx.Done():
@@ -61,7 +63,7 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			fmt.Printf("%sWarning: tunnel status error: %v%s\n", styleRed, err, styleReset)
 		}
 		clearScreen()
-		printDashboard(configPath, cfg, st)
+		printDashboard(configPath, cfg, st, sortRecent)
 		rawInput, readErr := readChoice(reader, "Action")
 		if readErr != nil {
 			if errors.Is(readErr, io.EOF) {
@@ -100,6 +102,9 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			err = connectHost(ctx, reader, configPath, statePath, cfg, firstArg(choice.Args))
 		case "v":
 			err = config.Validate(cfg)
+		case "r":
+			sortRecent = !sortRecent
+			continue
 		default:
 			err = fmt.Errorf("unknown command %q, press ? for help", choice.Action)
 		}
@@ -112,10 +117,22 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 	}
 }
 
-func printDashboard(configPath string, cfg model.Config, st model.State) {
+func printDashboard(configPath string, cfg model.Config, st model.State, sortRecent bool) {
 	active := map[string]int{}
 	for _, entry := range st.Tunnels {
 		active[entry.HostName]++
+	}
+	hosts := append([]model.Host(nil), cfg.Hosts...)
+	if sortRecent {
+		sort.SliceStable(hosts, func(i, j int) bool {
+			return st.Hosts[hosts[i].Name].LastUsed.After(st.Hosts[hosts[j].Name].LastUsed)
+		})
+	} else {
+		sort.SliceStable(hosts, func(i, j int) bool { return hosts[i].Name < hosts[j].Name })
+	}
+	sortLabel := "recent"
+	if !sortRecent {
+		sortLabel = "name"
 	}
 	fmt.Printf("%s%s cbssh%s\n", styleCyan, styleBold, styleReset)
 	if lastError != "" {
@@ -126,12 +143,12 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 		fmt.Println(strings.Repeat("─", 80))
 	}
 	fmt.Printf("Config: %s%s%s", styleDim, configPath, styleReset)
-	fmt.Printf("  Hosts: %d  Active Tunnels: %d\n\n", len(cfg.Hosts), len(st.Tunnels))
-	if len(cfg.Hosts) == 0 {
+	fmt.Printf("  Hosts: %d  Active Tunnels: %d  %ssort: %s%s\n\n", len(cfg.Hosts), len(st.Tunnels), styleDim, sortLabel, styleReset)
+	if len(hosts) == 0 {
 		fmt.Println("No hosts configured.")
 	} else {
 		fmt.Printf("%s%-4s %-16s %-21s %-10s %-5s %-5s%s\n", styleBold, "NO", "NAME", "HOST", "USER", "TUN", "ACT", styleReset)
-		for i, host := range cfg.Hosts {
+		for i, host := range hosts {
 			count := active[host.Name]
 			countStr := strconv.Itoa(count)
 			if count > 0 {
@@ -165,8 +182,8 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 	fmt.Println()
 	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels  %s[i]%s info\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
-	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[r]%s sort  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
 
 func printMainHelp() {
@@ -180,6 +197,7 @@ func printMainHelp() {
 	fmt.Printf("  %si <host>%s               show host info\n", styleBold, styleReset)
 	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels\n", styleBold, styleReset)
 	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels\n", styleBold, styleReset)
+	fmt.Printf("  %sr%s                      toggle sort (recent / name)\n", styleBold, styleReset)
 	fmt.Printf("  %sv%s                      validate config\n", styleBold, styleReset)
 	fmt.Printf("  %s?%s                      help\n", styleBold, styleReset)
 	fmt.Printf("  %sq%s                      quit\n", styleBold, styleReset)
