@@ -5,9 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/cmdblock/cbssh/internal/model"
@@ -173,46 +170,15 @@ func RemoveEntries(path string, entries []model.TunnelRuntime) error {
 	return Save(path, st)
 }
 
-var (
-	bootTimeOnce sync.Once
-	bootTimeVal  time.Time
-)
-
-func systemBootTime() time.Time {
-	bootTimeOnce.Do(func() {
-		data, err := os.ReadFile("/proc/stat")
-		if err != nil {
-			return
-		}
-		for _, line := range strings.Split(string(data), "\n") {
-			if !strings.HasPrefix(line, "btime ") {
-				continue
-			}
-			sec, err := strconv.ParseInt(strings.TrimSpace(line[6:]), 10, 64)
-			if err != nil {
-				return
-			}
-			bootTimeVal = time.Unix(sec, 0)
-			return
-		}
-	})
-	return bootTimeVal
-}
-
 func CleanupStale(path string) (model.State, []model.TunnelRuntime, error) {
 	st, err := Load(path)
 	if err != nil {
 		return model.State{}, nil, err
 	}
-	bootTime := systemBootTime()
 	var stale []model.TunnelRuntime
 	out := st.Tunnels[:0]
 	for _, entry := range st.Tunnels {
-		if !bootTime.IsZero() && entry.StartedAt.Before(bootTime) {
-			stale = append(stale, entry)
-			continue
-		}
-		if platform.ProcessExists(entry.PID) {
+		if platform.ProcessMatches(entry.PID, entry.ProcessKey) {
 			out = append(out, entry)
 			continue
 		}

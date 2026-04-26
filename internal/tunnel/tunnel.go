@@ -132,6 +132,10 @@ func RunDaemon(ctx context.Context, opts DaemonOptions) error {
 
 	var closers []io.Closer
 	var entries []model.TunnelRuntime
+	processKey, err := platform.ProcessKey(os.Getpid())
+	if err != nil {
+		return fmt.Errorf("process identity unavailable: %w", err)
+	}
 	for _, tun := range selected {
 		closer, err := startRuntimeTunnel(ctx, client.Target(), tun)
 		if err != nil {
@@ -146,6 +150,7 @@ func RunDaemon(ctx context.Context, opts DaemonOptions) error {
 			TunnelName: tun.Name,
 			Type:       tun.Type,
 			PID:        os.Getpid(),
+			ProcessKey: processKey,
 			ListenHost: tun.ListenHost,
 			ListenPort: tun.ListenPort,
 			TargetHost: tun.TargetHost,
@@ -182,7 +187,7 @@ func Stop(ctx context.Context, statePath string, hostName string, tunnelNames []
 	if statePath == "" {
 		statePath = platform.DefaultStatePath()
 	}
-	st, err := state.Load(statePath)
+	st, _, err := state.CleanupStale(statePath)
 	if err != nil {
 		return nil, err
 	}
@@ -191,12 +196,14 @@ func Stop(ctx context.Context, statePath string, hostName string, tunnelNames []
 		return nil, nil
 	}
 
-	pids := map[int]bool{}
+	killed := map[string]bool{}
 	for _, entry := range targets {
-		pids[entry.PID] = true
-	}
-	for pid := range pids {
-		_ = platform.KillProcess(pid)
+		key := fmt.Sprintf("%d\x00%s", entry.PID, entry.ProcessKey)
+		if killed[key] {
+			continue
+		}
+		killed[key] = true
+		_ = platform.KillProcess(entry.PID, entry.ProcessKey)
 	}
 	_ = state.RemoveEntries(statePath, targets)
 	return targets, nil
@@ -269,7 +276,15 @@ func startOne(ctx context.Context, opts StartOptions, tunnelName string) (model.
 		return model.TunnelRuntime{}, err
 	}
 	pid := cmd.Process.Pid
+	processKey, err := platform.ProcessKey(pid)
+	if err != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return model.TunnelRuntime{}, fmt.Errorf("process identity unavailable for tunnel daemon: %w", err)
+	}
 	if err := cmd.Process.Release(); err != nil {
+		_ = platform.KillProcess(pid, processKey)
+		_ = cmd.Wait()
 		return model.TunnelRuntime{}, err
 	}
 
@@ -288,14 +303,14 @@ func startOne(ctx context.Context, opts StartOptions, tunnelName string) (model.
 				return entry, nil
 			}
 		}
-		if !platform.ProcessExists(pid) {
+		if !platform.ProcessMatches(pid, processKey) {
 			return model.TunnelRuntime{}, fmt.Errorf("tunnel process exited before becoming ready; see %s", logPath)
 		}
 		select {
 		case <-ctx.Done():
 			return model.TunnelRuntime{}, ctx.Err()
 		case <-deadline.C:
-			_ = platform.TerminateProcess(pid)
+			_ = platform.TerminateProcess(pid, processKey)
 			return model.TunnelRuntime{}, fmt.Errorf("timed out waiting for tunnel readiness; see %s", logPath)
 		case <-tick.C:
 		}

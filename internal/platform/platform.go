@@ -1,13 +1,10 @@
 package platform
 
 import (
-	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 )
 
 func ExpandPath(path string) string {
@@ -61,36 +58,4 @@ func DefaultLogDir() string {
 		return ExpandPath(value)
 	}
 	return filepath.Join(filepath.Dir(DefaultStatePath()), "logs")
-}
-
-func ProcessExists(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	err := syscall.Kill(pid, 0)
-	return err == nil || errors.Is(err, syscall.EPERM)
-}
-
-func TerminateProcess(pid int) error {
-	if pid <= 0 {
-		return nil
-	}
-	if !ProcessExists(pid) {
-		return nil
-	}
-	return syscall.Kill(pid, syscall.SIGTERM)
-}
-
-func KillProcess(pid int) error {
-	if pid <= 0 {
-		return nil
-	}
-	if !ProcessExists(pid) {
-		return nil
-	}
-	return syscall.Kill(pid, syscall.SIGKILL)
-}
-
-func DetachCommand(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 }

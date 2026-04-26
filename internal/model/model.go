@@ -68,6 +68,7 @@ type TunnelRuntime struct {
 	TunnelName string    `json:"tunnel_name"`
 	Type       string    `json:"type"`
 	PID        int       `json:"pid"`
+	ProcessKey string    `json:"process_key,omitempty"`
 	ListenHost string    `json:"listen_host"`
 	ListenPort int       `json:"listen_port"`
 	TargetHost string    `json:"target_host,omitempty"`
