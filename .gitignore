@@ -1,0 +1,6 @@
+.codex
+/cbssh
+bin/
+dist/
+.tmp/
+coverage.out
