@@ -182,7 +182,7 @@ func Stop(ctx context.Context, statePath string, hostName string, tunnelNames []
 	if statePath == "" {
 		statePath = platform.DefaultStatePath()
 	}
-	st, _, err := state.CleanupStale(statePath)
+	st, err := state.Load(statePath)
 	if err != nil {
 		return nil, err
 	}
@@ -196,41 +196,10 @@ func Stop(ctx context.Context, statePath string, hostName string, tunnelNames []
 		pids[entry.PID] = true
 	}
 	for pid := range pids {
-		if err := platform.TerminateProcess(pid); err != nil {
-			return targets, err
-		}
+		_ = platform.KillProcess(pid)
 	}
-
-	deadline := time.NewTimer(5 * time.Second)
-	defer deadline.Stop()
-	tick := time.NewTicker(100 * time.Millisecond)
-	defer tick.Stop()
-
-	for {
-		allStopped := true
-		for pid := range pids {
-			if platform.ProcessExists(pid) {
-				allStopped = false
-				break
-			}
-		}
-		if allStopped {
-			_ = state.RemoveEntries(statePath, targets)
-			return targets, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return targets, ctx.Err()
-		case <-deadline.C:
-			for pid := range pids {
-				_ = platform.KillProcess(pid)
-			}
-			_ = state.RemoveEntries(statePath, targets)
-			return targets, nil
-		case <-tick.C:
-		}
-	}
+	_ = state.RemoveEntries(statePath, targets)
+	return targets, nil
 }
 
 func Status(statePath string, hostName string) (model.State, []model.TunnelRuntime, error) {
