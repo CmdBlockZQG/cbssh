@@ -76,30 +76,30 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 		switch choice.Action {
 		case "":
 			continue
-		case "?", "h", "help":
+		case "?":
 			printMainHelp()
 			waitEnter(reader)
 			continue
-		case "q", "quit", "exit":
+		case "q":
 			return nil
-		case "a", "add":
+		case "a":
 			err = addHost(reader, configPath, cfg)
-		case "e", "edit":
-			err = editHost(reader, configPath, cfg, "")
-		case "d", "delete":
-			err = deleteHost(reader, configPath, cfg, "")
-		case "t", "tunnels":
-			err = manageTunnels(ctx, reader, configPath, statePath, cfg, "")
-		case "s", "start":
-			err = startTunnels(ctx, reader, statePath, configPath, cfg, nil)
-		case "x", "stop":
-			err = stopTunnels(ctx, reader, statePath, cfg, nil)
-		case "c", "connect":
-			err = connectHost(ctx, reader, configPath, statePath, cfg, "")
-		case "v", "validate":
+		case "e":
+			err = editHost(reader, configPath, cfg, firstArg(choice.Args))
+		case "d":
+			err = deleteHost(reader, configPath, cfg, firstArg(choice.Args))
+		case "t":
+			err = manageTunnels(ctx, reader, configPath, statePath, cfg, firstArg(choice.Args))
+		case "s":
+			err = startTunnels(ctx, reader, statePath, configPath, cfg, choice.Args)
+		case "x":
+			err = stopTunnels(ctx, reader, statePath, cfg, choice.Args)
+		case "c":
+			err = connectHost(ctx, reader, configPath, statePath, cfg, firstArg(choice.Args))
+		case "v":
 			err = config.Validate(cfg)
 		default:
-			err = connectHost(ctx, reader, configPath, statePath, cfg, choice.Action)
+			err = fmt.Errorf("unknown command %q, press ? for help", choice.Action)
 		}
 		if err != nil {
 			if errors.Is(err, errCanceled) {
@@ -161,7 +161,7 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 		}
 	}
 	fmt.Println()
-	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[m]%s tunnels\n",
+	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
@@ -169,17 +169,21 @@ func printDashboard(configPath string, cfg model.Config, st model.State) {
 
 func printMainHelp() {
 	fmt.Println()
-	fmt.Println("Single-letter commands (all parameters via wizard):")
-	fmt.Printf("  %s[c]%s or %s<name>%s   connect to host\n", styleBold, styleReset, styleBold, styleReset)
-	fmt.Printf("  %s[a]%s           add host\n", styleBold, styleReset)
-	fmt.Printf("  %s[e]%s           edit host (wizard asks which)\n", styleBold, styleReset)
-	fmt.Printf("  %s[d]%s           delete host (wizard asks which)\n", styleBold, styleReset)
-	fmt.Printf("  %s[m]%s           manage tunnels for a host\n", styleBold, styleReset)
-	fmt.Printf("  %s[s]%s           start tunnels (wizard asks host + names)\n", styleBold, styleReset)
-	fmt.Printf("  %s[x]%s           stop tunnels (wizard asks host + names)\n", styleBold, styleReset)
-	fmt.Printf("  %s[v]%s           validate config\n", styleBold, styleReset)
-	fmt.Printf("  %s[?]%s           help\n", styleBold, styleReset)
-	fmt.Printf("  %s[q]%s           quit\n", styleBold, styleReset)
+	fmt.Println("Commands:")
+	fmt.Printf("  %sc <host>%s               connect to host <host>\n", styleBold, styleReset)
+	fmt.Printf("  %sa%s                      add a new host\n", styleBold, styleReset)
+	fmt.Printf("  %se <host>%s               edit host <host>\n", styleBold, styleReset)
+	fmt.Printf("  %sd <host>%s               delete host <host>\n", styleBold, styleReset)
+	fmt.Printf("  %st <host>%s               enter tunnel menu for host <host>\n", styleBold, styleReset)
+	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels, blank <tun> = defaults\n", styleBold, styleReset)
+	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels, blank <host> = all, blank <tun> = all\n", styleBold, styleReset)
+	fmt.Printf("  %sv%s                      validate config\n", styleBold, styleReset)
+	fmt.Printf("  %s?%s                      show this help\n", styleBold, styleReset)
+	fmt.Printf("  %sq%s                      quit\n", styleBold, styleReset)
+	fmt.Println()
+	fmt.Printf("  %s<host>%s = host name or number\n", styleBold, styleReset)
+	fmt.Printf("  %s<tun>%s = tunnel name or number, comma/space separated\n", styleBold, styleReset)
+	fmt.Println("  All commands prompt interactively when arguments are omitted.")
 }
 
 func addHost(reader *bufio.Reader, configPath string, cfg model.Config) error {
@@ -321,24 +325,32 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 		switch choice.Action {
 		case "":
 			continue
-		case "?", "h", "help":
+		case "?":
 			printTunnelHelp(host.Name)
 			waitEnter(reader)
 			continue
-		case "b", "back":
+		case "b":
 			return nil
-		case "a", "add":
+		case "a":
 			err = addTunnel(reader, configPath, cfg, index)
-		case "e", "edit":
-			err = editTunnel(reader, configPath, cfg, index, "")
-		case "d", "delete":
-			err = deleteTunnel(reader, configPath, cfg, index, "")
-		case "s", "start":
-			raw := splitArgs(promptString(reader, "Tunnel names (blank for defaults)", ""))
-			err = startHostTunnels(ctx, statePath, configPath, host, raw)
-		case "x", "stop":
-			raw := splitArgs(promptString(reader, "Tunnel names (blank to stop all)", ""))
-			err = stopHostTunnels(ctx, statePath, host, raw)
+		case "e":
+			err = editTunnel(reader, configPath, cfg, index, firstArg(choice.Args))
+		case "d":
+			err = deleteTunnel(reader, configPath, cfg, index, firstArg(choice.Args))
+		case "s":
+			if len(choice.Args) > 0 {
+				err = startHostTunnels(ctx, statePath, configPath, host, choice.Args)
+			} else {
+				raw := splitArgs(promptString(reader, "Tunnel names (blank for defaults)", ""))
+				err = startHostTunnels(ctx, statePath, configPath, host, raw)
+			}
+		case "x":
+			if len(choice.Args) > 0 {
+				err = stopHostTunnels(ctx, statePath, host, choice.Args)
+			} else {
+				raw := splitArgs(promptString(reader, "Tunnel names (blank to stop all)", ""))
+				err = stopHostTunnels(ctx, statePath, host, raw)
+			}
 		default:
 			err = fmt.Errorf("unknown action")
 		}
@@ -353,13 +365,17 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 
 func printTunnelHelp(hostName string) {
 	fmt.Println()
-	fmt.Println("Single-letter commands (all parameters via wizard):")
-	fmt.Printf("  %s[s]%s    start tunnels (blank = defaults)\n", styleBold, styleReset)
-	fmt.Printf("  %s[x]%s    stop tunnels (blank = stop all)\n", styleBold, styleReset)
-	fmt.Printf("  %s[a]%s    add tunnel\n", styleBold, styleReset)
-	fmt.Printf("  %s[e]%s    edit tunnel (wizard asks which)\n", styleBold, styleReset)
-	fmt.Printf("  %s[d]%s    delete tunnel (wizard asks which)\n", styleBold, styleReset)
-	fmt.Printf("  %s[b]%s    back to main menu\n", styleBold, styleReset)
+	fmt.Println("Commands:")
+	fmt.Printf("  %ss [<tun>..]%s   start tunnels, blank = defaults\n", styleBold, styleReset)
+	fmt.Printf("  %sx [<tun>..]%s   stop tunnels, blank = all\n", styleBold, styleReset)
+	fmt.Printf("  %sa%s             add a new tunnel\n", styleBold, styleReset)
+	fmt.Printf("  %se <tun>%s       edit tunnel <tun>\n", styleBold, styleReset)
+	fmt.Printf("  %sd <tun>%s       delete tunnel <tun>\n", styleBold, styleReset)
+	fmt.Printf("  %s?%s             show this help\n", styleBold, styleReset)
+	fmt.Printf("  %sb%s             back to main menu\n", styleBold, styleReset)
+	fmt.Println()
+	fmt.Printf("  %s<tun>%s = tunnel name or number, comma/space separated\n", styleBold, styleReset)
+	fmt.Println("  All commands prompt interactively when arguments are omitted.")
 }
 
 func addTunnel(reader *bufio.Reader, configPath string, cfg model.Config, hostIndex int) error {
@@ -446,9 +462,17 @@ func stopTunnels(ctx context.Context, reader *bufio.Reader, statePath string, cf
 		}
 		host := cfg.Hosts[index]
 		hostName = host.Name
-		names, err = resolveTunnelSelectors(host, args[1:])
-		if err != nil {
-			return err
+		if len(args) > 1 {
+			names, err = resolveTunnelSelectors(host, args[1:])
+			if err != nil {
+				return err
+			}
+		} else {
+			rawNames := splitArgs(promptString(reader, "Tunnel names (blank to stop all)", ""))
+			names, err = resolveTunnelSelectors(host, rawNames)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		selector := promptString(reader, "Host number/name (blank for all)", "")
@@ -459,7 +483,7 @@ func stopTunnels(ctx context.Context, reader *bufio.Reader, statePath string, cf
 			}
 			host := cfg.Hosts[index]
 			hostName = host.Name
-			rawNames := splitArgs(promptString(reader, "Tunnel names", ""))
+			rawNames := splitArgs(promptString(reader, "Tunnel names (blank to stop all)", ""))
 			names, err = resolveTunnelSelectors(host, rawNames)
 			if err != nil {
 				return err
@@ -503,7 +527,11 @@ func connectHost(ctx context.Context, reader *bufio.Reader, configPath string, s
 		return err
 	}
 	_ = state.MarkHostUsed(statePath, host.Name, time.Now())
-	return sshclient.RunInteractive(ctx, cfg, chain)
+	if err := sshclient.RunInteractive(ctx, cfg, chain); err != nil {
+		fmt.Printf("\n%sSSH error: %v%s\n", styleRed+styleBold, err, styleReset)
+	}
+	os.Exit(0)
+	return nil
 }
 
 func selectHost(reader *bufio.Reader, cfg model.Config, selector string) (int, error) {
