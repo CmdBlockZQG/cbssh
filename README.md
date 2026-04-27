@@ -8,6 +8,7 @@
 - TOML 配置读取、写入、严格校验
 - 明文密码和私钥登录
 - Go 原生多级跳板连接
+- 基于 SFTP 的文件上传和下载
 - `local` / `remote` / `dynamic` tunnel 配置
 - 后台常驻 tunnel 进程
 - tunnel 状态查看和停止
@@ -125,6 +126,30 @@ cbssh info <name>
 cbssh connect <name>
 cbssh c <name>
 ```
+
+上传文件或目录：
+
+```bash
+cbssh file upload <name> <local> [remote]
+cbssh file up <name> <local> [remote]
+cbssh file upload <name> ./dist /opt/app --recursive
+```
+
+下载文件或目录：
+
+```bash
+cbssh file download <name> <remote> [local]
+cbssh file down <name> <remote> [local]
+cbssh file download <name> /var/log/app ./logs --recursive
+```
+
+顶层 `upload` / `up` / `download` / `down` 是对应 `file` 子命令的快捷别名，例如 `cbssh up prod ./app.tar.gz` 等价于 `cbssh file upload prod ./app.tar.gz`。
+
+文件传输默认不会覆盖已有文件，使用 `--force` 覆盖。目录传输需要显式加 `--recursive`。命令每次都会新建 SSH/SFTP 会话，不会记录上一次传输或浏览时的远端目录状态。远端相对路径和 `~/path` 都基于该次 SFTP 会话的远端初始目录解析，通常是远端登录用户的 home 目录。
+
+远端路径以 `~` 开头时需要加引号或转义，例如 `'~/app.log'` 或 `\~/app.log`。如果直接写 `~/app.log`，本地 shell 会在 `cbssh` 启动前把它展开成本机用户的 home 路径，程序收到的会是类似 `/home/local-user/app.log` 的远端绝对路径。
+
+省略最后一个路径参数时会使用源路径的 basename：上传 `./app.tar.gz` 会写到远端初始目录下的 `app.tar.gz`，上传 `./dist --recursive` 会写到远端初始目录下的 `dist/`；下载 `/var/log/app.log` 会保存为本地当前目录下的 `app.log`，下载 `/tmp/release --recursive` 会保存为本地当前目录下的 `release/`。
 
 启动 tunnel：
 
