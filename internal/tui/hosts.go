@@ -66,7 +66,11 @@ func editHost(reader *bufio.Reader, configPath string, cfg model.Config, selecto
 		host.Auth.Passphrase = ""
 		host.Auth.UseAgent = false
 	} else {
-		host.Auth.KeyPath = promptRequiredString(reader, "Key path", host.Auth.KeyPath)
+		keyPathFallback := host.Auth.KeyPath
+		if keyPathFallback == "" {
+			keyPathFallback = cfg.DefaultKeyPath
+		}
+		host.Auth.KeyPath = promptRequiredString(reader, "Key path", keyPathFallback)
 		host.Auth.Passphrase = promptString(reader, "Key passphrase", host.Auth.Passphrase)
 		host.Auth.UseAgent = promptBool(reader, "Use ssh-agent", host.Auth.UseAgent)
 		host.Auth.Password = ""
