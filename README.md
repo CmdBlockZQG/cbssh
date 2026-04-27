@@ -34,6 +34,8 @@ cbssh config edit
 cbssh
 ```
 
+Building from source requires Go 1.26.2 or newer. Prebuilt binaries do not require Go.
+
 ## Commands
 
 ### Dashboard
@@ -68,7 +70,6 @@ File transfer flags: `-r, --recursive` (directories), `-f, --force` (overwrite),
 | `cbssh tunnel start <name> [tunnel...]` | Start default or specified tunnels |
 | `cbssh tunnel stop [name] [tunnel...]` | Stop active tunnels |
 | `cbssh tunnel status [name]` | List active tunnels |
-| `cbssh tunnel restart <name> [tunnel...]` | Restart tunnels (stop then start) |
 
 Omitting tunnel names on `start` launches all default tunnels; on `stop` stops **all** active
 tunnels for the host regardless of the `default` flag. Omitting the host name on `stop`/`status`
@@ -97,7 +98,6 @@ The following top-level commands are aliases for
 | `cbssh status [name]` | `cbssh tunnel status [name]` |
 | `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
 | `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
-| `cbssh restart <name> [tunnel...]` | `cbssh tunnel restart <name> [tunnel...]` |
 
 ## Configuration
 
@@ -187,8 +187,8 @@ when not set; it is also the fallback when an individual host omits `key_path`.
 |---|---|---|---|
 | `name` | Yes | — | Tunnel identifier |
 | `type` | No | `local` | `local`, `remote`, or `dynamic` |
-| `listen_host` | No | `127.0.0.1` | Local listener address |
-| `listen_port` | Yes | — | Local listener port |
+| `listen_host` | No | `127.0.0.1` | Listener address; local for `local`/`dynamic`, remote for `remote` |
+| `listen_port` | Yes | — | Listener port; local for `local`/`dynamic`, remote for `remote` |
 | `target_host` | For `local`/`remote` | — | Target server address |
 | `target_port` | For `local`/`remote` | — | Target server port |
 | `default` | No | `false` | Start this tunnel when no names are given to `tunnel start` |

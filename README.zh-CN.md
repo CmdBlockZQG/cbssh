@@ -33,6 +33,8 @@ cbssh config edit
 cbssh
 ```
 
+从源码安装需要 Go 1.26.2 或更新版本。预编译二进制不需要安装 Go。
+
 ## 命令
 
 ### 仪表盘
@@ -67,7 +69,6 @@ cbssh
 | `cbssh tunnel start <name> [tunnel...]` | 启动默认或指定的隧道 |
 | `cbssh tunnel stop [name] [tunnel...]` | 停止活跃隧道 |
 | `cbssh tunnel status [name]` | 查看活跃隧道 |
-| `cbssh tunnel restart <name> [tunnel...]` | 重启隧道（先停后启） |
 
 `start` 省略隧道名称时启动所有标记为默认的隧道；`stop` 省略隧道名称时停止该主机
 **所有**活跃隧道（不区分 `default` 标记）。`stop` / `status` 省略主机名称时作用于所有主机。
@@ -95,7 +96,6 @@ cbssh
 | `cbssh status [name]` | `cbssh tunnel status [name]` |
 | `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
 | `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
-| `cbssh restart <name> [tunnel...]` | `cbssh tunnel restart <name> [tunnel...]` |
 
 ## 配置
 
@@ -184,8 +184,8 @@ default = false
 |---|---|---|---|
 | `name` | 是 | — | 隧道标识符 |
 | `type` | 否 | `local` | `local`、`remote` 或 `dynamic` |
-| `listen_host` | 否 | `127.0.0.1` | 本地监听地址 |
-| `listen_port` | 是 | — | 本地监听端口 |
+| `listen_host` | 否 | `127.0.0.1` | 监听地址；`local`/`dynamic` 为本地，`remote` 为远端 |
+| `listen_port` | 是 | — | 监听端口；`local`/`dynamic` 为本地，`remote` 为远端 |
 | `target_host` | `local`/`remote` 时 | — | 目标服务器地址 |
 | `target_port` | `local`/`remote` 时 | — | 目标服务器端口 |
 | `default` | 否 | `false` | 使用 `tunnel start` 时若未指定隧道名则启动此隧道 |

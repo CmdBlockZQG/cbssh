@@ -48,17 +48,6 @@ func (a *app) newTunnelCommand() *cobra.Command {
 			return a.runTunnelStatus(cmd, hostName)
 		},
 	})
-	tunnelCmd.AddCommand(&cobra.Command{
-		Use:   "restart <name> [tunnel...]",
-		Short: "Restart default or selected tunnels",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := a.runTunnelStop(cmd, args); err != nil {
-				return err
-			}
-			return a.runTunnelStart(cmd, args[0], args[1:])
-		},
-	})
 	return tunnelCmd
 }
 
@@ -94,20 +83,6 @@ func (a *app) newStartCommand() *cobra.Command {
 		Short: "Alias for 'tunnel start'",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return a.runTunnelStart(cmd, args[0], args[1:])
-		},
-	}
-}
-
-func (a *app) newRestartCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "restart <name> [tunnel...]",
-		Short: "Alias for 'tunnel restart'",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := a.runTunnelStop(cmd, args); err != nil {
-				return err
-			}
 			return a.runTunnelStart(cmd, args[0], args[1:])
 		},
 	}
