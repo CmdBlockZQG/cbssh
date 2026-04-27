@@ -21,7 +21,11 @@ runtime dependencies.
 ## Quick Start
 
 ```bash
-# Install
+# Install from GitHub Releases
+# Download the linux/darwin amd64/arm64 binary from:
+# https://github.com/CmdBlockZQG/cbssh/releases
+
+# Or install with Go
 go install github.com/cmdblock/cbssh/cmd/cbssh@latest
 
 # Create default config
@@ -33,8 +37,6 @@ cbssh config edit
 # Launch the dashboard
 cbssh
 ```
-
-Building from source requires Go 1.26.2 or newer. Prebuilt binaries do not require Go.
 
 ## Commands
 
@@ -201,9 +203,14 @@ when not set; it is also the fallback when an individual host omits `key_path`.
 | `known_hosts` | Verify against `~/.ssh/known_hosts` |
 | `known-hosts` | Same as `known_hosts` |
 
-## Installation
+## Build From Source
+
+Building from source requires Go 1.26.2 or newer.
 
 ```bash
+# Install with Go
+go install github.com/cmdblock/cbssh/cmd/cbssh@latest
+
 # Build locally
 make build                  # → bin/cbssh
 

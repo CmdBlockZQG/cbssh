@@ -20,7 +20,11 @@
 ## 快速开始
 
 ```bash
-# 安装
+# 从 GitHub Releases 安装
+# 下载 linux/darwin amd64/arm64 二进制：
+# https://github.com/CmdBlockZQG/cbssh/releases
+
+# 或者使用 Go 安装
 go install github.com/cmdblock/cbssh/cmd/cbssh@latest
 
 # 创建默认配置
@@ -32,8 +36,6 @@ cbssh config edit
 # 启动仪表盘
 cbssh
 ```
-
-从源码安装需要 Go 1.26.2 或更新版本。预编译二进制不需要安装 Go。
 
 ## 命令
 
@@ -198,9 +200,14 @@ default = false
 | `known_hosts` | 使用 `~/.ssh/known_hosts` 进行校验 |
 | `known-hosts` | 等价于 `known_hosts` |
 
-## 安装
+## 从源码构建
+
+从源码安装或编译需要 Go 1.26.2 或更新版本。
 
 ```bash
+# 使用 Go 安装
+go install github.com/cmdblock/cbssh/cmd/cbssh@latest
+
 # 本地编译
 make build                  # → bin/cbssh
 
