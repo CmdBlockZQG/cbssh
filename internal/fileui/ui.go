@@ -126,6 +126,11 @@ func (u *ui) dispatch(ctx context.Context, cmd command) error {
 			return err
 		}
 		return u.download(ctx, cmd.args)
+	case "x":
+		if err := requireMaxArgs(cmd, 1); err != nil {
+			return err
+		}
+		return u.runRemoteCommand(ctx, firstArg(cmd.args))
 	default:
 		return fmt.Errorf("unknown command %q, press ? for help", cmd.action)
 	}

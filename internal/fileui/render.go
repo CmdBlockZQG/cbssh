@@ -24,10 +24,10 @@ func (u *ui) render() {
 		fmt.Printf(" %-3d %-5s %-10s %s\n", i+1, kind, formatBytes(entry.Size), name)
 	}
 	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("  %s[c]%s cd  %s[u]%s upload  %s[d]%s download  %s[h]%s hidden  %s[r]%s refresh\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
-	fmt.Printf("  %s[?]%s help  %s[q]%s quit\n",
-		styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[c]%s cd  %s[u]%s upload  %s[d]%s download  %s[x]%s run\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[h]%s hidden  %s[r]%s refresh  %s[?]%s help  %s[q]%s quit\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
 
 func (u *ui) printMessage() {
@@ -46,6 +46,7 @@ func (u *ui) printHelp() {
 	fmt.Printf("  %sc <path>%s             cd path\n", styleBold, styleReset)
 	fmt.Printf("  %su [local [remote]]%s   upload a local file or directory\n", styleBold, styleReset)
 	fmt.Printf("  %sd [remote [local]]%s   download a remote file or directory\n", styleBold, styleReset)
+	fmt.Printf("  %sx <cmd>%s              run a command in the current remote directory\n", styleBold, styleReset)
 	fmt.Printf("  %sh%s                    toggle hidden files\n", styleBold, styleReset)
 	fmt.Printf("  %sr%s                    refresh\n", styleBold, styleReset)
 	fmt.Printf("  %s?%s                    help\n", styleBold, styleReset)

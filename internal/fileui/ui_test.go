@@ -1,7 +1,11 @@
 package fileui
 
 import (
+	"bufio"
+	"context"
+	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cmdblock/cbssh/internal/filetransfer"
@@ -17,10 +21,53 @@ func TestParseCommandSplitsCommaAndWhitespace(t *testing.T) {
 	}
 }
 
+func TestParseCommandPreservesXRemoteCommand(t *testing.T) {
+	cmd := parseCommand("x find . -maxdepth 1")
+	if cmd.action != "x" {
+		t.Fatalf("action = %q, want x", cmd.action)
+	}
+	if len(cmd.args) != 1 || cmd.args[0] != "find . -maxdepth 1" {
+		t.Fatalf("args = %#v, want [find . -maxdepth 1]", cmd.args)
+	}
+}
+
 func TestRequireMaxArgsRejectsExtraArguments(t *testing.T) {
 	err := requireMaxArgs(command{action: "u", args: []string{"a", "b", "c"}}, 2)
 	if err == nil {
 		t.Fatal("requireMaxArgs error = nil, want error")
+	}
+}
+
+func TestShellQuote(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{value: "/home/app", want: "'/home/app'"},
+		{value: "/home/app dir", want: "'/home/app dir'"},
+		{value: "/tmp/a'b", want: "'/tmp/a'\\''b'"},
+		{value: "", want: "''"},
+	}
+	for _, test := range tests {
+		if got := shellQuote(test.value); got != test.want {
+			t.Fatalf("shellQuote(%q) = %q, want %q", test.value, got, test.want)
+		}
+	}
+}
+
+func TestRemoteShellCommandChangesToQuotedCurrentDirectory(t *testing.T) {
+	got := remoteShellCommand("/home/app dir", "ls -la")
+	want := "cd '/home/app dir' && ls -la"
+	if got != want {
+		t.Fatalf("remoteShellCommand = %q, want %q", got, want)
+	}
+}
+
+func TestRunRemoteCommandPromptsAndCancelsEmptyInput(t *testing.T) {
+	u := &ui{reader: bufio.NewReader(strings.NewReader("\n"))}
+	err := u.runRemoteCommand(context.Background(), "")
+	if !errors.Is(err, errCanceled) {
+		t.Fatalf("runRemoteCommand error = %v, want %v", err, errCanceled)
 	}
 }
 

@@ -58,14 +58,29 @@ func readLine(reader *bufio.Reader) (string, error) {
 }
 
 func parseCommand(value string) command {
-	fields := strings.Fields(strings.ReplaceAll(value, ",", " "))
-	if len(fields) == 0 {
+	value = strings.TrimSpace(value)
+	if value == "" {
 		return command{}
 	}
+
+	rawFields := strings.Fields(value)
+	action := strings.ToLower(rawFields[0])
+	if action == "x" {
+		return remoteCommand(action, strings.TrimSpace(value[len(rawFields[0]):]))
+	}
+
+	fields := strings.Fields(strings.ReplaceAll(value, ",", " "))
 	return command{
 		action: strings.ToLower(fields[0]),
 		args:   fields[1:],
 	}
+}
+
+func remoteCommand(action string, remote string) command {
+	if remote == "" {
+		return command{action: action}
+	}
+	return command{action: action, args: []string{remote}}
 }
 
 func firstArg(args []string) string {
