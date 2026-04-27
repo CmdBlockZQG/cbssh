@@ -41,13 +41,13 @@ func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st
 	}
 	fmt.Println(strings.Repeat("-", 80))
 	if len(st.Tunnels) > 0 {
-		fmt.Printf("%s%-16s %-16s %-7s %-21s %-7s%s\n", styleBold, "ACTIVE HOST", "TUNNEL", "TYPE", "LISTEN", "PID", styleReset)
+		fmt.Printf("%s%-16s %-16s %-1s %-21s %-7s%s\n", styleBold, "ACTIVE HOST", "TUNNEL", "T", "LISTEN", "PID", styleReset)
 		for _, entry := range st.Tunnels {
-			fmt.Printf("%s%-16s %-16s %-7s %-21s %-7d%s\n",
+			fmt.Printf("%s%-16s %-16s %-1s %-21s %-7d%s\n",
 				styleGreen,
 				entry.HostName,
 				entry.TunnelName,
-				entry.Type,
+				model.TunnelTypeCode(entry.Type),
 				entry.ListenAddress(),
 				entry.PID,
 				styleReset,

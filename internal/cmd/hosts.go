@@ -95,8 +95,8 @@ func (a *app) newInfoCommand() *cobra.Command {
 				return nil
 			}
 			fmt.Fprintf(out, "%sTunnels:%s\n", cliBold, cliReset)
-			fmt.Fprintf(out, "%s%-4s %-16s %-7s %-21s %-21s %-3s %-7s%s\n",
-				cliBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "PID", cliReset)
+			fmt.Fprintf(out, "%s%-4s %-16s %-1s %-21s %-21s %-3s %-7s%s\n",
+				cliBold, "NO", "NAME", "T", "LISTEN", "TARGET", "DEF", "PID", cliReset)
 			for i, tun := range host.Tunnels {
 				_, isActive := active[tun.Name]
 				pid := "-"
@@ -107,10 +107,10 @@ func (a *app) newInfoCommand() *cobra.Command {
 				if tun.Default {
 					def = 1
 				}
-				fmt.Fprintf(out, " %-3d %-16s %-7s %-21s %-21s %-3d %-7s\n",
+				fmt.Fprintf(out, " %-3d %-16s %-1s %-21s %-21s %-3d %-7s\n",
 					i+1,
 					tun.Name,
-					tun.Type,
+					model.TunnelTypeCode(tun.Type),
 					tun.ListenAddress(),
 					emptyDash(tun.TargetAddress()),
 					def,

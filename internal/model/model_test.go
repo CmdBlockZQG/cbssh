@@ -13,3 +13,23 @@ func TestTunnelTargetAddressEmptyForDynamicTunnel(t *testing.T) {
 		t.Fatalf("TargetAddress() = %q, want empty", got)
 	}
 }
+
+func TestTunnelTypeCode(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{TunnelTypeDynamic, "D"},
+		{TunnelTypeLocal, "L"},
+		{TunnelTypeRemote, "R"},
+		{"custom", "custom"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			if got := TunnelTypeCode(tt.value); got != tt.want {
+				t.Fatalf("TunnelTypeCode(%q) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+}

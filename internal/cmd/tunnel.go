@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cmdblock/cbssh/internal/model"
 	"github.com/cmdblock/cbssh/internal/state"
 	"github.com/cmdblock/cbssh/internal/tunnel"
 )
@@ -146,13 +147,13 @@ func (a *app) runTunnelStatus(cmd *cobra.Command, hostName string) error {
 		return nil
 	}
 	out := cmd.OutOrStdout()
-	fmt.Fprintf(out, "%s%-16s %-16s %-7s %-21s %-21s %-7s %-19s %s%s\n",
-		cliBold, "HOST", "TUNNEL", "TYPE", "LISTEN", "TARGET", "PID", "STARTED", "LOG", cliReset)
+	fmt.Fprintf(out, "%s%-16s %-16s %-1s %-21s %-21s %-7s %-19s %s%s\n",
+		cliBold, "HOST", "TUNNEL", "T", "LISTEN", "TARGET", "PID", "STARTED", "LOG", cliReset)
 	for _, entry := range st.Tunnels {
-		fmt.Fprintf(out, "%-16s %-16s %-7s %-21s %-21s %-7d %-19s %s\n",
+		fmt.Fprintf(out, "%-16s %-16s %-1s %-21s %-21s %-7d %-19s %s\n",
 			entry.HostName,
 			entry.TunnelName,
-			entry.Type,
+			model.TunnelTypeCode(entry.Type),
 			entry.ListenAddress(),
 			emptyDash(entry.TargetAddress()),
 			entry.PID,

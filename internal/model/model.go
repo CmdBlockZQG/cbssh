@@ -17,6 +17,19 @@ const (
 	TunnelTypeDynamic = "dynamic"
 )
 
+func TunnelTypeCode(value string) string {
+	switch value {
+	case TunnelTypeDynamic:
+		return "D"
+	case TunnelTypeLocal:
+		return "L"
+	case TunnelTypeRemote:
+		return "R"
+	default:
+		return value
+	}
+}
+
 // Config is the top-level TOML configuration file.
 type Config struct {
 	DefaultKeyPath string `toml:"default_key_path"`

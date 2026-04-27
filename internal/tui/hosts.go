@@ -135,7 +135,7 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 
 	fmt.Println()
 	fmt.Printf("%s%s%s\n", styleBold, host.Name, styleReset)
-	fmt.Println(strings.Repeat("-", 40))
+	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("Host: %s\n", host.Address())
 	fmt.Printf("User: %s\n", host.User)
 	jump := strings.Join(chain, " -> ")
@@ -145,12 +145,12 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 		authLine += " " + host.Auth.KeyPath
 	}
 	fmt.Printf("Auth: %s\n", authLine)
-	fmt.Println(strings.Repeat("-", 40))
+	fmt.Println(strings.Repeat("-", 80))
 	if len(host.Tunnels) == 0 {
-		fmt.Println("Tunnels: none")
+		fmt.Println("No tunnels configured.")
 	} else {
-		fmt.Printf("%s%-4s %-16s %-7s %-21s %-21s %-3s %-7s%s\n",
-			styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "PID", styleReset)
+		fmt.Printf("%s%-4s %-16s %-1s %-21s %-21s %-3s %-7s%s\n",
+			styleBold, "NO", "NAME", "T", "LISTEN", "TARGET", "DEF", "PID", styleReset)
 		for i, tun := range host.Tunnels {
 			_, isActive := active[tun.Name]
 			pid := "-"
@@ -161,12 +161,13 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 			if tun.Default {
 				def = 1
 			}
-			fmt.Printf(" %-3d %-16s %-7s %-21s %-21s %-3d %-7s\n",
-				i+1, tun.Name, tun.Type,
+			fmt.Printf(" %-3d %-16s %-1s %-21s %-21s %-3d %-7s\n",
+				i+1, tun.Name, model.TunnelTypeCode(tun.Type),
 				tun.ListenAddress(), emptyDash(tun.TargetAddress()),
 				def, pid)
 		}
 	}
+	fmt.Println(strings.Repeat("-", 80))
 	waitEnter(reader)
 	return nil
 }

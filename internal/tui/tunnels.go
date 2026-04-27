@@ -51,7 +51,7 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 		if len(host.Tunnels) == 0 {
 			fmt.Println("No tunnels configured.")
 		} else {
-			fmt.Printf("%s%-4s %-16s %-7s %-21s %-21s %-3s %-7s%s\n", styleBold, "NO", "NAME", "TYPE", "LISTEN", "TARGET", "DEF", "PID", styleReset)
+			fmt.Printf("%s%-4s %-16s %-1s %-21s %-21s %-3s %-7s%s\n", styleBold, "NO", "NAME", "T", "LISTEN", "TARGET", "DEF", "PID", styleReset)
 			for i, tun := range host.Tunnels {
 				_, isActive := active[tun.Name]
 				pid := "-"
@@ -62,10 +62,10 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 				if tun.Default {
 					def = 1
 				}
-				fmt.Printf(" %-3d %-16s %-7s %-21s %-21s %-3d %-7s\n",
+				fmt.Printf(" %-3d %-16s %-1s %-21s %-21s %-3d %-7s\n",
 					i+1,
 					tun.Name,
-					tun.Type,
+					model.TunnelTypeCode(tun.Type),
 					tun.ListenAddress(),
 					emptyDash(tun.TargetAddress()),
 					def,
