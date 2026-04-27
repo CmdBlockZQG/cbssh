@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 
 	"github.com/cmdblock/cbssh/internal/config"
+	"github.com/cmdblock/cbssh/internal/hostview"
 	"github.com/cmdblock/cbssh/internal/model"
 	"github.com/cmdblock/cbssh/internal/tunnel"
 )
@@ -58,13 +58,13 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 		if err != nil {
 			fmt.Printf("%sWarning: tunnel status error: %v%s\n", styleRed, err, styleReset)
 		}
-		sorted := append([]model.Host(nil), cfg.Hosts...)
+		sortMode := hostview.SortName
 		if sortRecent {
-			sort.SliceStable(sorted, func(i, j int) bool {
-				return st.Hosts[sorted[i].Name].LastUsed.After(st.Hosts[sorted[j].Name].LastUsed)
-			})
-		} else {
-			sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Name < sorted[j].Name })
+			sortMode = hostview.SortRecent
+		}
+		sorted, err := hostview.Sort(cfg.Hosts, st, sortMode)
+		if err != nil {
+			return err
 		}
 		setSortedHosts(sorted)
 		clearScreen()

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cmdblock/cbssh/internal/atomicfile"
 	"github.com/cmdblock/cbssh/internal/platform"
 )
 
@@ -28,33 +29,12 @@ func writeStartupError(statePath string, runID string, startupErr error) error {
 		return nil
 	}
 	path := startupStatusPath(statePath, runID)
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
 	data, err := json.Marshal(startupStatus{Error: startupErr.Error()})
 	if err != nil {
 		return err
 	}
 	data = append(data, '\n')
-
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".startup-*.json")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err := tmp.Chmod(0o600); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmpName, path)
+	return atomicfile.WriteFile(path, ".startup-*.json", data, 0o600)
 }
 
 func readStartupError(statePath string, runID string) (error, bool, error) {
