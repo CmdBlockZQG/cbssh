@@ -1,58 +1,116 @@
 # cbssh
 
-`cbssh` 是一个用 Go 编写的 SSH 连接和 tunnel 管理 CLI。它使用 TOML 保存连接配置，支持通过连接名称递归配置多级跳板，并可以把 SSH tunnel 启动为后台常驻进程。
+> SSH connection and tunnel manager — configure once, connect anywhere.
 
-当前版本是第一版可运行 MVP，已包含：
+`cbssh` manages SSH hosts, multi-hop jump chains, file transfers over SFTP, and long-running
+SSH tunnels (local, remote, dynamic) from a single TOML config file. Built in Go with no
+runtime dependencies.
 
-- SSH 连接配置管理模型
-- TOML 配置读取、写入、严格校验
-- 明文密码和私钥登录
-- Go 原生多级跳板连接
-- 基于 SFTP 的文件上传和下载
-- `local` / `remote` / `dynamic` tunnel 配置
-- 后台常驻 tunnel 进程
-- tunnel 状态查看和停止
-- 基础交互式 TUI 管理菜单
+## Features
 
-## 构建
+- Terminal-based TUI for browsing hosts and managing tunnels
+- Multi-hop SSH connections with recursive jump resolution
+- SFTP file upload/download with recursive and force-overwrite support
+- Interactive remote file browser (TUI)
+- Long-running background tunnels (local, remote, SOCKS5 dynamic)
+- TOML configuration with validation and in-editor editing
+- Key-based and password authentication, with SSH agent support
 
-```bash
-go build -o cbssh ./cmd/cbssh
-```
-
-也可以使用 `Makefile`：
+## Quick Start
 
 ```bash
-make help
-make run ARGS='ls'
-make dev ARGS='config validate'
-make build VERSION=0.1.0
-make dist VERSION=0.1.0
-```
+# Install
+go install github.com/cmdblock/cbssh/cmd/cbssh@latest
 
-`make dev` 使用 `.tmp/cbssh/config.toml` 和 `.tmp/cbssh/state.json`，适合本地调试，不会影响默认用户配置。`make dist` 会编译 Linux 和 macOS 的 `amd64` / `arm64` 二进制到 `dist/`。
-
-## 配置文件
-
-默认配置路径：
-
-```text
-~/.config/cbssh/config.toml
-```
-
-可以通过命令查看：
-
-```bash
-cbssh config path
-```
-
-初始化空配置：
-
-```bash
+# Create default config
 cbssh config init
+
+# Edit config to add your hosts
+cbssh config edit
+
+# Launch the dashboard
+cbssh
 ```
 
-配置示例：
+## Commands
+
+### Dashboard
+
+| Command | Description |
+|---|---|
+| `cbssh` | Open the interactive TUI (host list, tunnels, file browser) |
+| `cbssh tui` | Same as above (explicit) |
+
+### Hosts
+
+| Command | Description |
+|---|---|
+| `cbssh ls [--sort recent\|name]` | List all configured hosts |
+| `cbssh info <name>` | Show host details (address, user, jump chain, tunnels) |
+| `cbssh connect <name>` | Open an interactive SSH session |
+
+### File Transfer
+
+| Command | Description |
+|---|---|
+| `cbssh file upload <name> <local> [remote]` | Upload file or directory via SFTP |
+| `cbssh file download <name> <remote> [local]` | Download file or directory via SFTP |
+| `cbssh file tui <name>` | Browse remote files in interactive TUI |
+
+File transfer flags: `-r, --recursive` (directories), `-f, --force` (overwrite), `-q, --quiet`.
+
+### Tunnels
+
+| Command | Description |
+|---|---|
+| `cbssh tunnel start <name> [tunnel...]` | Start default or specified tunnels |
+| `cbssh tunnel stop [name] [tunnel...]` | Stop active tunnels |
+| `cbssh tunnel status [name]` | List active tunnels |
+| `cbssh tunnel restart <name> [tunnel...]` | Restart tunnels (stop then start) |
+
+Omitting tunnel names on `start` launches all default tunnels; on `stop` stops **all** active
+tunnels for the host regardless of the `default` flag. Omitting the host name on `stop`/`status`
+acts across all hosts.
+
+### Configuration
+
+| Command | Description |
+|---|---|
+| `cbssh config path` | Print the config file path |
+| `cbssh config init` | Create an empty config if missing |
+| `cbssh config validate` | Validate config syntax and file permissions |
+| `cbssh config edit` | Open config in `$EDITOR` (falls back to `vi`) |
+
+### Shortcuts
+
+The following top-level commands are aliases for
+`file` and `tunnel` subcommands:
+
+| Shortcut | Equivalent |
+|---|---|
+| `cbssh c <name>` | `cbssh connect <name>` |
+| `cbssh up <name> <local> [remote]` | `cbssh file upload <name> <local> [remote]` |
+| `cbssh upload ...` | `cbssh file upload ...` |
+| `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
+| `cbssh download ...` | `cbssh file download ...` |
+| `cbssh browse <name>` | `cbssh file tui <name>` |
+| `cbssh status [name]` | `cbssh tunnel status [name]` |
+| `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
+| `cbssh tunnel <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
+
+## Configuration
+
+Default config path is platform-dependent:
+
+| OS | Path |
+|---|---|
+| Linux | `~/.config/cbssh/config.toml` |
+| macOS | `~/Library/Application Support/cbssh/config.toml` |
+
+Pass `--config` and `--state` flags to override defaults (persistent flags available on all
+commands).
+
+### Complete Example
 
 ```toml
 default_key_path = "~/.ssh/id_ed25519"
@@ -67,6 +125,8 @@ user = "ubuntu"
 [hosts.auth]
 type = "key"
 key_path = "~/.ssh/id_ed25519"
+# passphrase = "optional-key-passphrase"
+# use_agent = true
 
 [[hosts]]
 name = "prod-db"
@@ -96,166 +156,81 @@ listen_port = 1080
 default = false
 ```
 
-`jump` 使用连接名称引用。每个连接只需要配置一个跳板，`cbssh` 会递归解析出完整链路。
+`jump` references another host by name. `cbssh` recursively resolves the full chain —
+a host can jump through a bastion that itself jumps through another host.
 
-## 常用命令
+### Auth Fields
 
-启动 TUI：
+| Field | Required | Description |
+|---|---|---|
+| `type` | Yes | `key` or `password` |
+| `password` | For `password` | Plain-text password |
+| `key_path` | No | Path to the private key file; falls back to `default_key_path` |
+| `passphrase` | No | Passphrase for encrypted private keys |
+| `use_agent` | No | Use `SSH_AUTH_SOCK` agent for key authentication |
 
-```bash
-cbssh
-cbssh tui
-```
+### Tunnel Types
 
-列出连接：
+| Type | Equivalent | Requires |
+|---|---|---|
+| `local` | `ssh -L` | `target_host`, `target_port` |
+| `remote` | `ssh -R` | `target_host`, `target_port` |
+| `dynamic` | `ssh -D` | — (SOCKS5 proxy on `listen_host:listen_port`) |
 
-```bash
-cbssh ls
-cbssh ls --sort name
-```
+### Host Key Checking
 
-查看连接详情：
+| Value | Behavior |
+|---|---|
+| `insecure` | Skip host key verification (default) |
+| `known_hosts` | Verify against `~/.ssh/known_hosts` |
+| `known-hosts` | Same as `known_hosts` |
 
-```bash
-cbssh info <name>
-```
-
-连接 SSH 终端：
-
-```bash
-cbssh connect <name>
-cbssh c <name>
-```
-
-上传文件或目录：
+## Installation
 
 ```bash
-cbssh file upload <name> <local> [remote]
-cbssh file up <name> <local> [remote]
-cbssh file upload <name> ./dist /opt/app --recursive
+# Build locally
+make build                  # → bin/cbssh
+
+# Cross-compile (linux/darwin × amd64/arm64)
+make dist                   # → dist/
+
+# Test
+make test
+make vet
+
+# Dev mode (uses .tmp/cbssh/ for config/state)
+make dev-init
+make dev ARGS='ls'
 ```
 
-下载文件或目录：
+## Internals
 
-```bash
-cbssh file download <name> <remote> [local]
-cbssh file down <name> <remote> [local]
-cbssh file download <name> /var/log/app ./logs --recursive
-```
+### Multi-hop
 
-打开远端文件浏览 TUI：
+Jump chains are built with Go's `golang.org/x/crypto/ssh` — no external `ssh` binary or
+`ProxyJump` directive. Each hop opens an SSH connection and creates a `net.Conn` dialer
+through it, resolving the full chain sequentially.
 
-```bash
-cbssh file tui <name>
-cbssh file browse <name>
-```
+### State & daemons
 
-文件 TUI 会在进入 host 时建立一次 SFTP 连接，并在退出前复用同一个连接。TUI 只浏览远端目录，不展示本地目录树；上传时输入本地路径，下载时输入远端编号或路径。TUI 中输入的远端相对路径会基于当前远端目录解析，也可以输入绝对路径或 `~/path`。命令使用单字母：`c` 进入目录（保留 `cd` 别名）、`u [local] [remote]` 上传、`d [remote] [local]` 下载、`h` 显示或隐藏隐藏文件、`r` 刷新、`q` 退出；`u` 和 `d` 只会询问未提供的参数。默认不显示隐藏文件；上传或下载只有在目标路径已存在时才会询问是否覆盖。
+Active tunnel processes run as detached daemons managed through a JSON state file.
+On startup, `cbssh` verifies the identity of any PID recorded in the state to prevent
+stale entries from conflicting with reused PIDs.
 
-顶层 `upload` / `up` / `download` / `down` 是对应 `file` 子命令的快捷别名，例如 `cbssh up prod ./app.tar.gz` 等价于 `cbssh file upload prod ./app.tar.gz`。
+| OS | State file |
+|---|---|
+| Linux | `~/.local/state/cbssh/state.json` |
+| macOS | `~/Library/Application Support/cbssh/state.json` |
 
-文件传输默认不会覆盖已有文件，使用 `--force` 覆盖。目录传输需要显式加 `--recursive`。命令每次都会新建 SSH/SFTP 会话，不会记录上一次传输或浏览时的远端目录状态。远端相对路径和 `~/path` 都基于该次 SFTP 会话的远端初始目录解析，通常是远端登录用户的 home 目录。
+Tunnel logs are written to `logs/` next to the state file.
 
-远端路径以 `~` 开头时需要加引号或转义，例如 `'~/app.log'` 或 `\~/app.log`。如果直接写 `~/app.log`，本地 shell 会在 `cbssh` 启动前把它展开成本机用户的 home 路径，程序收到的会是类似 `/home/local-user/app.log` 的远端绝对路径。
+### Security
 
-省略最后一个路径参数时会使用源路径的 basename：上传 `./app.tar.gz` 会写到远端初始目录下的 `app.tar.gz`，上传 `./dist --recursive` 会写到远端初始目录下的 `dist/`；下载 `/var/log/app.log` 会保存为本地当前目录下的 `app.log`，下载 `/tmp/release --recursive` 会保存为本地当前目录下的 `release/`。
+- Passwords are stored as plaintext in the TOML config — set restrictive file permissions:
+  `chmod 600 ~/.config/cbssh/config.toml`
+- `cbssh config validate` warns if the config file is readable by others.
+- The daemon tunnel command is hidden (`cbssh daemon tunnel`) and not meant for direct use.
 
-启动 tunnel：
+## License
 
-```bash
-cbssh tunnel <name>
-cbssh tunnel start <name>
-cbssh tunnel start <name> [<tun>, <tun>, ...]
-```
-
-查看 tunnel 状态：
-
-```bash
-cbssh status
-cbssh status <name>
-cbssh tunnel status
-```
-
-停止 tunnel：
-
-```bash
-cbssh stop
-cbssh stop <name>
-cbssh stop <name> <tun>
-cbssh tunnel stop <name> <tun>
-```
-
-校验配置：
-
-```bash
-cbssh config validate
-```
-
-用 `$EDITOR` 打开配置：
-
-```bash
-cbssh config edit
-```
-
-## Tunnel 类型
-
-`local` 对应 `ssh -L`：
-
-```toml
-type = "local"
-listen_host = "127.0.0.1"
-listen_port = 3307
-target_host = "127.0.0.1"
-target_port = 3306
-```
-
-`remote` 对应 `ssh -R`：
-
-```toml
-type = "remote"
-listen_host = "127.0.0.1"
-listen_port = 8080
-target_host = "127.0.0.1"
-target_port = 8080
-```
-
-`dynamic` 对应 `ssh -D`，提供本地 SOCKS5 代理：
-
-```toml
-type = "dynamic"
-listen_host = "127.0.0.1"
-listen_port = 1080
-```
-
-## 状态和日志
-
-Linux 默认状态文件：
-
-```text
-~/.local/state/cbssh/state.json
-```
-
-macOS 默认状态文件：
-
-```text
-~/Library/Application Support/cbssh/state.json
-```
-
-日志默认保存在状态文件同级的 `logs` 目录。`cbssh status` 会显示每个活跃 tunnel 的 PID 和日志路径。同一主机下的多个 tunnel 会优先复用同一个后台 daemon 和 SSH client，因此可能显示相同 PID。
-
-状态文件会记录后台进程身份指纹。清理状态和停止 tunnel 时，程序会校验 PID 是否仍然对应同一个 `cbssh daemon`，避免 PID 被系统回收或重启后误把其他进程当作活跃 tunnel，或误杀无关进程。
-
-## 安全说明
-
-当前版本按需求支持在 TOML 中明文保存密码。建议把配置文件权限设为只有当前用户可读写：
-
-```bash
-chmod 600 ~/.config/cbssh/config.toml
-```
-
-`cbssh config validate` 会在配置文件对其他用户可读时输出 warning。
-
-`host_key_check` 目前支持：
-
-- `insecure`：默认值，不校验 host key
-- `known_hosts`：使用 `~/.ssh/known_hosts` 校验
+MIT — see [LICENSE](LICENSE).

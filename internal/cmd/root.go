@@ -35,6 +35,7 @@ func NewRootCommand(version string) *cobra.Command {
 	root.AddCommand(a.newFileCommand())
 	root.AddCommand(a.newUploadCommand())
 	root.AddCommand(a.newDownloadCommand())
+	root.AddCommand(a.newBrowseCommand())
 	root.AddCommand(a.newTunnelCommand())
 	root.AddCommand(a.newStatusCommand())
 	root.AddCommand(a.newStopCommand())

@@ -48,8 +48,27 @@ func (a *app) newFileTUICommand() *cobra.Command {
 	}
 }
 
-// Top-level upload/download commands stay as shortcuts, while file upload/file
-// download remain the canonical command namespace.
+func (a *app) newBrowseCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "browse <name>",
+		Short: "Alias for 'file tui'",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := config.Load(a.configPath)
+			if err != nil {
+				return err
+			}
+			_ = state.MarkHostUsed(a.statePath, args[0], time.Now())
+			if err := fileui.Run(cmd.Context(), cfg, args[0]); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+}
+
+// Top-level upload/download/browse commands stay as shortcuts, while file upload/file
+// download/file tui remain the canonical command namespace.
 func (a *app) newUploadCommand() *cobra.Command {
 	return a.newUploadCommandWithUse("upload <name> <local> [remote]", "Alias for 'file upload'")
 }
