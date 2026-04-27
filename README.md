@@ -143,6 +143,15 @@ cbssh file down <name> <remote> [local]
 cbssh file download <name> /var/log/app ./logs --recursive
 ```
 
+打开远端文件浏览 TUI：
+
+```bash
+cbssh file tui <name>
+cbssh file browse <name>
+```
+
+文件 TUI 会在进入 host 时建立一次 SFTP 连接，并在退出前复用同一个连接。TUI 只浏览远端目录，不展示本地目录树；上传时输入本地路径，下载时输入远端编号或路径。TUI 中输入的远端相对路径会基于当前远端目录解析，也可以输入绝对路径或 `~/path`。默认不显示隐藏文件，使用 `h` 切换；上传或下载只有在目标路径已存在时才会询问是否覆盖。
+
 顶层 `upload` / `up` / `download` / `down` 是对应 `file` 子命令的快捷别名，例如 `cbssh up prod ./app.tar.gz` 等价于 `cbssh file upload prod ./app.tar.gz`。
 
 文件传输默认不会覆盖已有文件，使用 `--force` 覆盖。目录传输需要显式加 `--recursive`。命令每次都会新建 SSH/SFTP 会话，不会记录上一次传输或浏览时的远端目录状态。远端相对路径和 `~/path` 都基于该次 SFTP 会话的远端初始目录解析，通常是远端登录用户的 home 目录。

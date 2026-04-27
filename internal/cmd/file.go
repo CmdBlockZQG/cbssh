@@ -10,6 +10,7 @@ import (
 
 	"github.com/cmdblock/cbssh/internal/config"
 	"github.com/cmdblock/cbssh/internal/filetransfer"
+	"github.com/cmdblock/cbssh/internal/fileui"
 	"github.com/cmdblock/cbssh/internal/state"
 )
 
@@ -23,7 +24,28 @@ func (a *app) newFileCommand() *cobra.Command {
 	}
 	fileCmd.AddCommand(a.newUploadCommandWithUse("upload <name> <local> [remote]", "Upload files over SFTP"))
 	fileCmd.AddCommand(a.newDownloadCommandWithUse("download <name> <remote> [local]", "Download files over SFTP"))
+	fileCmd.AddCommand(a.newFileTUICommand())
 	return fileCmd
+}
+
+func (a *app) newFileTUICommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "tui <name>",
+		Aliases: []string{"browse"},
+		Short:   "Browse remote files over SFTP",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := config.Load(a.configPath)
+			if err != nil {
+				return err
+			}
+			_ = state.MarkHostUsed(a.statePath, args[0], time.Now())
+			if err := fileui.Run(cmd.Context(), cfg, args[0]); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 }
 
 // Top-level upload/download commands stay as shortcuts, while file upload/file

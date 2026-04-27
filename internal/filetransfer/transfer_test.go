@@ -68,3 +68,27 @@ func TestRemoteBaseRootIsEmpty(t *testing.T) {
 		t.Fatalf("remoteBase = %q, want empty", got)
 	}
 }
+
+func TestResolveRemotePathRelativeToBase(t *testing.T) {
+	session := &Session{}
+	got, err := session.ResolveRemotePath("/home/app", "logs/app.log")
+	if err != nil {
+		t.Fatalf("ResolveRemotePath error = %v", err)
+	}
+	want := "/home/app/logs/app.log"
+	if got != want {
+		t.Fatalf("ResolveRemotePath = %q, want %q", got, want)
+	}
+}
+
+func TestResolveRemotePathAbsoluteIgnoresBase(t *testing.T) {
+	session := &Session{}
+	got, err := session.ResolveRemotePath("/home/app", "/var/log/app.log")
+	if err != nil {
+		t.Fatalf("ResolveRemotePath error = %v", err)
+	}
+	want := "/var/log/app.log"
+	if got != want {
+		t.Fatalf("ResolveRemotePath = %q, want %q", got, want)
+	}
+}

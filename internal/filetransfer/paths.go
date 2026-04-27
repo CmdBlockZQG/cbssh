@@ -45,6 +45,25 @@ func (s *Session) uploadFileDestination(localPath, remotePath string) (string, e
 	return dest, nil
 }
 
+// ResolveRemotePath resolves value against base using SFTP path semantics. It is
+// intended for stateful callers such as the file TUI, where relative paths should
+// follow the current remote directory instead of the session's initial directory.
+func (s *Session) ResolveRemotePath(base string, value string) (string, error) {
+	basePath, err := s.normalizeRemotePath(base)
+	if err != nil {
+		return "", err
+	}
+	value = strings.TrimSpace(value)
+	switch {
+	case value == "" || value == ".":
+		return basePath, nil
+	case value == "~" || strings.HasPrefix(value, "~/") || path.IsAbs(value):
+		return s.normalizeRemotePath(value)
+	default:
+		return remoteJoin(basePath, value), nil
+	}
+}
+
 // normalizeRemotePath converts every user-provided remote path to a POSIX path
 // under the target SFTP server. Unquoted ~/path never reaches this function:
 // the user's local shell expands it before cbssh starts.

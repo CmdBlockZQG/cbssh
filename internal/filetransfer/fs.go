@@ -97,10 +97,14 @@ func ensureLocalFileWritable(localPath string, force bool) error {
 	return fmt.Errorf("stat local file %s: %w", localPath, err)
 }
 
-func isNotExist(err error) bool {
+func IsNotExist(err error) bool {
 	if os.IsNotExist(err) {
 		return true
 	}
 	var status *sftp.StatusError
 	return errors.As(err, &status) && status.FxCode() == sftp.ErrSSHFxNoSuchFile
+}
+
+func isNotExist(err error) bool {
+	return IsNotExist(err)
 }

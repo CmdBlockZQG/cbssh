@@ -105,6 +105,8 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			err = stopTunnels(ctx, reader, statePath, cfg, choice.Args)
 		case "c":
 			err = connectHost(ctx, reader, configPath, statePath, cfg, firstArg(choice.Args))
+		case "f":
+			err = browseFiles(ctx, reader, statePath, cfg, firstArg(choice.Args))
 		case "v":
 			err = config.Validate(cfg)
 		case "r":

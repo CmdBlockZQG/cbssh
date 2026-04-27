@@ -6,6 +6,14 @@ import (
 	"sort"
 )
 
+func (s *Session) Stat(remotePath string) (os.FileInfo, error) {
+	target, err := s.normalizeRemotePath(remotePath)
+	if err != nil {
+		return nil, err
+	}
+	return s.client.Stat(target)
+}
+
 func (s *Session) ListDir(remotePath string) ([]Entry, error) {
 	dir, err := s.normalizeRemotePath(defaultRemotePath(remotePath))
 	if err != nil {

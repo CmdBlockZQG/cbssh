@@ -63,8 +63,8 @@ func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st
 		}
 	}
 	fmt.Println()
-	fmt.Printf("  %s[c]%s connect  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels  %s[i]%s info\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[c]%s connect  %s[f]%s files  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels  %s[i]%s info\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[r]%s sort  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
@@ -73,6 +73,7 @@ func printMainHelp() {
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Printf("  %sc <host>%s               connect to host\n", styleBold, styleReset)
+	fmt.Printf("  %sf <host>%s               browse files\n", styleBold, styleReset)
 	fmt.Printf("  %sa%s                      add host\n", styleBold, styleReset)
 	fmt.Printf("  %se <host>%s               edit host\n", styleBold, styleReset)
 	fmt.Printf("  %sd <host>%s               delete host\n", styleBold, styleReset)

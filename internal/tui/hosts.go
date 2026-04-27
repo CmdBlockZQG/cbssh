@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cmdblock/cbssh/internal/config"
+	"github.com/cmdblock/cbssh/internal/fileui"
 	"github.com/cmdblock/cbssh/internal/model"
 	"github.com/cmdblock/cbssh/internal/sshclient"
 	"github.com/cmdblock/cbssh/internal/state"
@@ -97,6 +98,20 @@ func connectHost(ctx context.Context, reader *bufio.Reader, configPath string, s
 		fmt.Printf("\n%sSSH error: %v%s\n", styleRed+styleBold, err, styleReset)
 	}
 	os.Exit(0)
+	return nil
+}
+
+func browseFiles(ctx context.Context, reader *bufio.Reader, statePath string, cfg model.Config, selector string) error {
+	index, err := selectHost(reader, cfg, selector)
+	if err != nil {
+		return err
+	}
+	host := cfg.Hosts[index]
+	_ = state.MarkHostUsed(statePath, host.Name, time.Now())
+	if err := fileui.Run(ctx, cfg, host.Name); err != nil {
+		fmt.Printf("\n%sFile error: %v%s\n", styleRed+styleBold, err, styleReset)
+		waitEnter(reader)
+	}
 	return nil
 }
 
