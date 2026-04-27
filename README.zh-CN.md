@@ -93,8 +93,9 @@ cbssh
 | `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
 | `cbssh browse <name>` | `cbssh file tui <name>` |
 | `cbssh status [name]` | `cbssh tunnel status [name]` |
-| `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
 | `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
+| `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
+| `cbssh restart <name> [tunnel...]` | `cbssh tunnel restart <name> [tunnel...]` |
 
 ## 配置
 

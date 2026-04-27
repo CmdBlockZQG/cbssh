@@ -40,6 +40,7 @@ func NewRootCommand(version string) *cobra.Command {
 	root.AddCommand(a.newStatusCommand())
 	root.AddCommand(a.newStopCommand())
 	root.AddCommand(a.newStartCommand())
+	root.AddCommand(a.newRestartCommand())
 	root.AddCommand(a.newConfigCommand())
 	root.AddCommand(a.newDaemonCommand())
 	return root

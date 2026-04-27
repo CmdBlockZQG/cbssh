@@ -99,6 +99,20 @@ func (a *app) newStartCommand() *cobra.Command {
 	}
 }
 
+func (a *app) newRestartCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart <name> [tunnel...]",
+		Short: "Alias for 'tunnel restart'",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := a.runTunnelStop(cmd, args); err != nil {
+				return err
+			}
+			return a.runTunnelStart(cmd, args[0], args[1:])
+		},
+	}
+}
+
 func (a *app) runTunnelStart(cmd *cobra.Command, hostName string, names []string) error {
 	entries, err := tunnel.StartDetached(cmd.Context(), tunnel.StartOptions{
 		ConfigPath:  a.configPath,
