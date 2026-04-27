@@ -35,15 +35,18 @@ type daemonCommand struct {
 	Response chan controlResponse
 }
 
+func hashedRunFileName(runID string, suffix string) string {
+	sum := sha256.Sum256([]byte(runID))
+	return hex.EncodeToString(sum[:16]) + suffix
+}
+
 // controlSocketPath hashes run IDs so socket names stay short on Unix systems.
 func controlSocketPath(statePath string, runID string) string {
 	statePath = platform.ExpandPath(statePath)
 	if statePath == "" {
 		statePath = platform.DefaultStatePath()
 	}
-	sum := sha256.Sum256([]byte(runID))
-	name := hex.EncodeToString(sum[:16]) + ".sock"
-	return filepath.Join(filepath.Dir(statePath), "sockets", name)
+	return filepath.Join(filepath.Dir(statePath), "sockets", hashedRunFileName(runID, ".sock"))
 }
 
 // listenControl creates a private Unix socket used for same-user daemon control.

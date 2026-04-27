@@ -86,6 +86,7 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 		return nil, err
 	}
 	runID := fmt.Sprintf("%d-%d-%s", time.Now().UnixNano(), os.Getpid(), opts.HostName)
+	_ = removeStartupStatus(opts.StatePath, runID)
 	if err := os.MkdirAll(opts.LogDir, 0o700); err != nil {
 		return nil, err
 	}
@@ -136,6 +137,18 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
 	for {
+		startupErr, found, err := readStartupError(opts.StatePath, runID)
+		if err != nil {
+			return nil, fmt.Errorf("read tunnel startup status: %w", err)
+		}
+		if found {
+			_ = removeStartupStatus(opts.StatePath, runID)
+			if startupErr != nil {
+				return nil, fmt.Errorf("tunnel startup failed: %w; see %s", startupErr, logPath)
+			}
+			return nil, fmt.Errorf("tunnel startup failed; see %s", logPath)
+		}
+
 		st, _, err := state.CleanupStale(opts.StatePath)
 		if err != nil {
 			return nil, err
@@ -160,6 +173,7 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 			return nil, ctx.Err()
 		case <-deadline.C:
 			_ = platform.TerminateProcess(pid, processKey)
+			_ = removeStartupStatus(opts.StatePath, runID)
 			return nil, fmt.Errorf("timed out waiting for tunnel readiness; see %s", logPath)
 		case <-tick.C:
 		}

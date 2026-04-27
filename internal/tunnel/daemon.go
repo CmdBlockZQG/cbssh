@@ -15,10 +15,16 @@ import (
 )
 
 // RunDaemon owns the SSH chain, live listeners, and control socket for a run.
-func RunDaemon(ctx context.Context, opts DaemonOptions) error {
-	if err := opts.normalize(); err != nil {
+func RunDaemon(ctx context.Context, opts DaemonOptions) (err error) {
+	if err = opts.normalize(); err != nil {
 		return err
 	}
+	startupComplete := false
+	defer func() {
+		if err != nil && !startupComplete {
+			_ = writeStartupError(opts.StatePath, opts.RunID, err)
+		}
+	}()
 
 	controlPath := controlSocketPath(opts.StatePath, opts.RunID)
 	controlListener, err := listenControl(controlPath)
@@ -68,6 +74,8 @@ func RunDaemon(ctx context.Context, opts DaemonOptions) error {
 	if _, err := startManagedTunnels(ctx, client.Target(), opts, selected, jumpNames, processKey, controlPath, logPath, active); err != nil {
 		return err
 	}
+	startupComplete = true
+	_ = removeStartupStatus(opts.StatePath, opts.RunID)
 	defer state.RemoveByRunID(opts.StatePath, opts.RunID)
 	defer closeManagedTunnels(active)
 
