@@ -1,5 +1,7 @@
 # cbssh
 
+[中文](README.zh-CN.md)
+
 > SSH connection and tunnel manager — configure once, connect anywhere.
 
 `cbssh` manages SSH hosts, multi-hop jump chains, file transfers over SFTP, and long-running
@@ -159,11 +161,14 @@ default = false
 `jump` references another host by name. `cbssh` recursively resolves the full chain —
 a host can jump through a bastion that itself jumps through another host.
 
+`port` defaults to `22` if omitted. `default_key_path` defaults to `~/.ssh/id_ed25519`
+when not set; it is also the fallback when an individual host omits `key_path`.
+
 ### Auth Fields
 
 | Field | Required | Description |
 |---|---|---|
-| `type` | Yes | `key` or `password` |
+| `type` | No | `key` or `password`; auto-detected from other fields if omitted |
 | `password` | For `password` | Plain-text password |
 | `key_path` | No | Path to the private key file; falls back to `default_key_path` |
 | `passphrase` | No | Passphrase for encrypted private keys |
@@ -176,6 +181,18 @@ a host can jump through a bastion that itself jumps through another host.
 | `local` | `ssh -L` | `target_host`, `target_port` |
 | `remote` | `ssh -R` | `target_host`, `target_port` |
 | `dynamic` | `ssh -D` | — (SOCKS5 proxy on `listen_host:listen_port`) |
+
+### Tunnel Fields
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `name` | Yes | — | Tunnel identifier |
+| `type` | No | `local` | `local`, `remote`, or `dynamic` |
+| `listen_host` | No | `127.0.0.1` | Local listener address |
+| `listen_port` | Yes | — | Local listener port |
+| `target_host` | For `local`/`remote` | — | Target server address |
+| `target_port` | For `local`/`remote` | — | Target server port |
+| `default` | No | `false` | Start this tunnel when no names are given to `tunnel start` |
 
 ### Host Key Checking
 
