@@ -3,7 +3,6 @@ package tui
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/cmdblock/cbssh/internal/model"
@@ -35,11 +34,11 @@ func startHostTunnels(ctx context.Context, statePath string, configPath string, 
 	}
 	_ = state.MarkHostUsed(statePath, host.Name, time.Now())
 	if len(entries) == 0 {
-		fmt.Println("No inactive default tunnels to start.")
+		addActionInfo("No inactive default tunnels to start.")
 		return nil
 	}
 	for _, entry := range entries {
-		fmt.Printf("Started %s/%s on %s (pid %d)\n", entry.HostName, entry.TunnelName, entry.ListenAddress(), entry.PID)
+		addActionInfo("Started %s/%s on %s (pid %d)", entry.HostName, entry.TunnelName, entry.ListenAddress(), entry.PID)
 	}
 	return nil
 }
@@ -99,11 +98,11 @@ func stopSelectedTunnels(ctx context.Context, statePath string, hostName string,
 		return err
 	}
 	if len(entries) == 0 {
-		fmt.Println("No active tunnels matched.")
+		addActionInfo("No active tunnels matched.")
 		return nil
 	}
 	for _, entry := range entries {
-		fmt.Printf("Stopped %s/%s (pid %d)\n", entry.HostName, entry.TunnelName, entry.PID)
+		addActionInfo("Stopped %s/%s (pid %d)", entry.HostName, entry.TunnelName, entry.PID)
 	}
 	return nil
 }

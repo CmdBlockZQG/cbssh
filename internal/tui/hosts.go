@@ -109,8 +109,7 @@ func browseFiles(ctx context.Context, reader *bufio.Reader, statePath string, cf
 	host := cfg.Hosts[index]
 	_ = state.MarkHostUsed(statePath, host.Name, time.Now())
 	if err := fileui.Run(ctx, cfg, host.Name); err != nil {
-		fmt.Printf("\n%sFile error: %v%s\n", styleRed+styleBold, err, styleReset)
-		waitEnter(reader)
+		addActionError("File error: %v", err)
 	}
 	return nil
 }
@@ -146,7 +145,7 @@ func showHost(reader *bufio.Reader, statePath string, cfg model.Config, selector
 		authLine += " " + host.Auth.KeyPath
 	}
 	fmt.Printf("Auth: %s\n", authLine)
-	fmt.Println()
+	fmt.Println(strings.Repeat("-", 40))
 	if len(host.Tunnels) == 0 {
 		fmt.Println("Tunnels: none")
 	} else {

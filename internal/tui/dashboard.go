@@ -17,16 +17,8 @@ func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st
 	if !sortRecent {
 		sortLabel = "name"
 	}
-	fmt.Printf("%s%s cbssh%s\n", styleCyan, styleBold, styleReset)
-	if lastError != "" {
-		fmt.Printf("%s%s%s\n", styleRed+styleBold, lastError, styleReset)
-		lastError = ""
-		fmt.Println(strings.Repeat("-", 80))
-	} else {
-		fmt.Println(strings.Repeat("-", 80))
-	}
-	fmt.Printf("Config: %s%s%s", styleDim, configPath, styleReset)
-	fmt.Printf("  Hosts: %d  Active Tunnels: %d  %ssort: %s%s\n\n", len(cfg.Hosts), len(st.Tunnels), styleDim, sortLabel, styleReset)
+	fmt.Printf("Hosts: %d  Active Tunnels: %d  %ssort: %s%s\n", len(cfg.Hosts), len(st.Tunnels), styleDim, sortLabel, styleReset)
+	fmt.Println(strings.Repeat("-", 80))
 	if len(sorted) == 0 {
 		fmt.Println("No hosts configured.")
 	} else {
@@ -47,8 +39,8 @@ func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st
 			)
 		}
 	}
+	fmt.Println(strings.Repeat("-", 80))
 	if len(st.Tunnels) > 0 {
-		fmt.Println()
 		fmt.Printf("%s%-16s %-16s %-7s %-21s %-7s%s\n", styleBold, "ACTIVE HOST", "TUNNEL", "TYPE", "LISTEN", "PID", styleReset)
 		for _, entry := range st.Tunnels {
 			fmt.Printf("%s%-16s %-16s %-7s %-21s %-7d%s\n",
@@ -61,12 +53,12 @@ func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st
 				styleReset,
 			)
 		}
+		fmt.Println(strings.Repeat("-", 80))
 	}
-	fmt.Println()
-	fmt.Printf("  %s[c]%s connect  %s[f]%s files  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[t]%s tunnels  %s[i]%s info\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
-	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[r]%s sort  %s[v]%s validate  %s[?]%s help  %s[q]%s quit\n",
+	fmt.Printf("  %s[c]%s connect  %s[f]%s files  %s[t]%s tunnels  %s[i]%s info  %s[r]%s sort  %s[v]%s validate\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[?]%s help  %s[q]%s quit\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
 
 func printMainHelp() {
@@ -74,15 +66,15 @@ func printMainHelp() {
 	fmt.Println("Commands:")
 	fmt.Printf("  %sc <host>%s               connect to host\n", styleBold, styleReset)
 	fmt.Printf("  %sf <host>%s               browse files\n", styleBold, styleReset)
+	fmt.Printf("  %st <host>%s               tunnel menu\n", styleBold, styleReset)
+	fmt.Printf("  %si <host>%s               show host info\n", styleBold, styleReset)
+	fmt.Printf("  %sr%s                      toggle sort (recent / name)\n", styleBold, styleReset)
+	fmt.Printf("  %sv%s                      validate config\n", styleBold, styleReset)
+	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels\n", styleBold, styleReset)
+	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels\n", styleBold, styleReset)
 	fmt.Printf("  %sa%s                      add host\n", styleBold, styleReset)
 	fmt.Printf("  %se <host>%s               edit host\n", styleBold, styleReset)
 	fmt.Printf("  %sd <host>%s               delete host\n", styleBold, styleReset)
-	fmt.Printf("  %st <host>%s               tunnel menu\n", styleBold, styleReset)
-	fmt.Printf("  %si <host>%s               show host info\n", styleBold, styleReset)
-	fmt.Printf("  %ss <host> [<tun>..]%s     start tunnels\n", styleBold, styleReset)
-	fmt.Printf("  %sx [<host> [<tun>..]]%s   stop tunnels\n", styleBold, styleReset)
-	fmt.Printf("  %sr%s                      toggle sort (recent / name)\n", styleBold, styleReset)
-	fmt.Printf("  %sv%s                      validate config\n", styleBold, styleReset)
 	fmt.Printf("  %s?%s                      help\n", styleBold, styleReset)
 	fmt.Printf("  %sq%s                      quit\n", styleBold, styleReset)
 	fmt.Println()

@@ -75,7 +75,7 @@ func (u *ui) loop(ctx context.Context) error {
 		}
 		clearScreen()
 		u.render()
-		raw, err := u.readLine("File action")
+		raw, err := u.readLine("Action")
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
@@ -93,8 +93,9 @@ func (u *ui) loop(ctx context.Context) error {
 			if errors.Is(err, errCanceled) {
 				continue
 			}
-			u.message = styleRed + err.Error() + styleReset
+			u.message = styleRed + styleBold + err.Error() + styleReset
 		}
+		u.printMessage()
 	}
 }
 

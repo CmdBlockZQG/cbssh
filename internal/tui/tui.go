@@ -16,7 +16,7 @@ import (
 
 var errCanceled = errors.New("canceled")
 
-var lastError string
+var pendingActionMessages []string
 
 const (
 	styleBold  = "\033[1m"
@@ -50,13 +50,13 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 				return err
 			}
 			cfg = lastCfg
-			fmt.Printf("%sWarning: config load failed, using cached: %v%s\n", styleRed, err, styleReset)
+			addActionWarning("config load failed, using cached: %v", err)
 		} else {
 			lastCfg = cfg
 		}
 		st, _, err := tunnel.Status(statePath, "")
 		if err != nil {
-			fmt.Printf("%sWarning: tunnel status error: %v%s\n", styleRed, err, styleReset)
+			addActionWarning("tunnel status error: %v", err)
 		}
 		sortMode := hostview.SortName
 		if sortRecent {
@@ -69,6 +69,7 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 		setSortedHosts(sorted)
 		clearScreen()
 		printDashboard(configPath, sorted, cfg, st, sortRecent)
+		printActionMessages(reader)
 		rawInput, readErr := readChoice(reader, "Action")
 		if readErr != nil {
 			if errors.Is(readErr, io.EOF) {
@@ -87,7 +88,7 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			printMainHelp()
 			waitEnter(reader)
 			continue
-		case "q", "b":
+		case "q":
 			return nil
 		case "a":
 			err = addHost(reader, configPath, cfg)
@@ -119,7 +120,46 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			if errors.Is(err, errCanceled) {
 				continue
 			}
-			lastError = err.Error()
+			addActionError("%s", err.Error())
 		}
+		printActionMessages(reader)
 	}
+}
+
+func addActionInfo(format string, args ...any) {
+	addActionMessage(formatActionMessage(format, args...))
+}
+
+func addActionWarning(format string, args ...any) {
+	addActionMessage(styleRed + "Warning: " + formatActionMessage(format, args...) + styleReset)
+}
+
+func addActionError(format string, args ...any) {
+	addActionMessage(styleRed + styleBold + formatActionMessage(format, args...) + styleReset)
+}
+
+func formatActionMessage(format string, args ...any) string {
+	if len(args) == 0 {
+		return format
+	}
+	return fmt.Sprintf(format, args...)
+}
+
+func addActionMessage(text string) {
+	if text == "" {
+		return
+	}
+	pendingActionMessages = append(pendingActionMessages, text)
+}
+
+func printActionMessages(reader *bufio.Reader) {
+	if len(pendingActionMessages) == 0 {
+		return
+	}
+	fmt.Println()
+	for _, message := range pendingActionMessages {
+		fmt.Printf("  %s\n", message)
+	}
+	pendingActionMessages = nil
+	waitEnter(reader)
 }

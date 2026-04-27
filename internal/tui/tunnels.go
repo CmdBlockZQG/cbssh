@@ -29,7 +29,7 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 		}
 		newCfg, loadErr := config.Load(configPath)
 		if loadErr != nil {
-			fmt.Printf("%sWarning: config load failed, using cached: %v%s\n", styleRed, loadErr, styleReset)
+			addActionWarning("config load failed, using cached: %v", loadErr)
 		} else {
 			cfg = newCfg
 		}
@@ -42,15 +42,11 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 		host := cfg.Hosts[hostIndex]
 		st, _, err := tunnel.Status(statePath, host.Name)
 		if err != nil {
-			fmt.Printf("%sWarning: tunnel status error: %v%s\n", styleRed, err, styleReset)
+			addActionWarning("tunnel status error: %v", err)
 		}
 		active := activeTunnelMap(st)
 		clearScreen()
-		fmt.Printf("%sTunnels for %s%s\n", styleBold+styleCyan, host.Name, styleReset)
-		if lastError != "" {
-			fmt.Printf("%s%s%s\n", styleRed+styleBold, lastError, styleReset)
-			lastError = ""
-		}
+		fmt.Printf("Tunnels for %s%s%s\n", styleBold, host.Name, styleReset)
 		fmt.Println(strings.Repeat("-", 80))
 		if len(host.Tunnels) == 0 {
 			fmt.Println("No tunnels configured.")
@@ -77,9 +73,10 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 				)
 			}
 		}
-		fmt.Println()
-		fmt.Printf("  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[s]%s start  %s[x]%s stop  %s[?]%s help  %s[b]%s back\n",
+		fmt.Println(strings.Repeat("-", 80))
+		fmt.Printf("  %s[s]%s start  %s[x]%s stop  %s[a]%s add  %s[e]%s edit  %s[d]%s delete  %s[?]%s help  %s[q]%s quit\n",
 			styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+		printActionMessages(reader)
 		rawInput, readErr := readChoice(reader, "Action")
 		if readErr != nil {
 			if errors.Is(readErr, io.EOF) {
@@ -127,8 +124,9 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 			if errors.Is(err, errCanceled) {
 				continue
 			}
-			lastError = err.Error()
+			addActionError("%s", err.Error())
 		}
+		printActionMessages(reader)
 	}
 }
 
