@@ -12,6 +12,9 @@ var namePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 func Validate(cfg model.Config) error {
 	cfg.Normalize()
+	if err := validateHostKeyCheck(cfg.HostKeyCheck); err != nil {
+		return err
+	}
 	seenHosts := map[string]struct{}{}
 	for _, host := range cfg.Hosts {
 		if err := validateHost(host); err != nil {
@@ -46,6 +49,15 @@ func Validate(cfg model.Config) error {
 	}
 
 	return nil
+}
+
+func validateHostKeyCheck(value string) error {
+	switch value {
+	case "", "insecure", "known_hosts", "known-hosts":
+		return nil
+	default:
+		return fmt.Errorf("unsupported host_key_check %q", value)
+	}
 }
 
 func validateHost(host model.Host) error {

@@ -17,6 +17,11 @@ import (
 	"github.com/cmdblock/cbssh/internal/tunnel"
 )
 
+var (
+	runInteractiveSSH = sshclient.RunInteractive
+	exitProcess       = os.Exit
+)
+
 func addHost(reader *bufio.Reader, configPath string, cfg model.Config) error {
 	host := model.Host{}
 	host.Name = promptRequiredString(reader, "Name", "")
@@ -94,10 +99,10 @@ func connectHost(ctx context.Context, reader *bufio.Reader, configPath string, s
 		return err
 	}
 	_ = state.MarkHostUsed(statePath, host.Name, time.Now())
-	if err := sshclient.RunInteractive(ctx, cfg, chain); err != nil {
-		fmt.Printf("\n%sSSH error: %v%s\n", styleRed+styleBold, err, styleReset)
+	if err := runInteractiveSSH(ctx, cfg, chain); err != nil {
+		return fmt.Errorf("SSH error: %w", err)
 	}
-	os.Exit(0)
+	exitProcess(0)
 	return nil
 }
 

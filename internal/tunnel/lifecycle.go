@@ -132,6 +132,15 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 		return nil, err
 	}
 
+	daemonReady := false
+	defer func() {
+		if daemonReady {
+			return
+		}
+		_ = platform.TerminateProcess(pid, processKey)
+		_ = removeStartupStatus(opts.StatePath, runID)
+	}()
+
 	deadline := time.NewTimer(opts.Timeout)
 	defer deadline.Stop()
 	tick := time.NewTicker(100 * time.Millisecond)
@@ -163,6 +172,7 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 			sort.Slice(entries, func(i, j int) bool {
 				return tunnelOrder(tunnelNames, entries[i].TunnelName) < tunnelOrder(tunnelNames, entries[j].TunnelName)
 			})
+			daemonReady = true
 			return entries, nil
 		}
 		if !platform.ProcessMatches(pid, processKey) {
@@ -172,8 +182,6 @@ func startDaemon(ctx context.Context, opts StartOptions, tunnelNames []string) (
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-deadline.C:
-			_ = platform.TerminateProcess(pid, processKey)
-			_ = removeStartupStatus(opts.StatePath, runID)
 			return nil, fmt.Errorf("timed out waiting for tunnel readiness; see %s", logPath)
 		case <-tick.C:
 		}

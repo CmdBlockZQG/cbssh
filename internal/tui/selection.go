@@ -59,7 +59,8 @@ func resolveHostSelector(cfg model.Config, value string) (int, error) {
 	} else if ambiguous {
 		return 0, fmt.Errorf("host selector %q is ambiguous", value)
 	}
-	if index, ok, ambiguous := findNamedHost(cfg, func(name string) bool { return strings.HasPrefix(strings.ToLower(name), strings.ToLower(value)) }); ok {
+	lowerValue := strings.ToLower(value)
+	if index, ok, ambiguous := findNamedHost(cfg, func(name string) bool { return strings.HasPrefix(strings.ToLower(name), lowerValue) }); ok {
 		return index, nil
 	} else if ambiguous {
 		return 0, fmt.Errorf("host selector %q is ambiguous", value)
@@ -102,7 +103,8 @@ func resolveTunnelSelector(host model.Host, value string) (int, error) {
 	} else if ambiguous {
 		return 0, fmt.Errorf("tunnel selector %q is ambiguous", value)
 	}
-	if index, ok, ambiguous := findNamedTunnel(host, func(name string) bool { return strings.HasPrefix(strings.ToLower(name), strings.ToLower(value)) }); ok {
+	lowerValue := strings.ToLower(value)
+	if index, ok, ambiguous := findNamedTunnel(host, func(name string) bool { return strings.HasPrefix(strings.ToLower(name), lowerValue) }); ok {
 		return index, nil
 	} else if ambiguous {
 		return 0, fmt.Errorf("tunnel selector %q is ambiguous", value)

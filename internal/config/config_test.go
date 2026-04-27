@@ -47,6 +47,18 @@ func TestValidateRejectsJumpCycle(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsUnsupportedHostKeyCheck(t *testing.T) {
+	cfg := model.Config{
+		HostKeyCheck: "strict",
+		Hosts:        []model.Host{host("target", "")},
+	}
+
+	err := Validate(cfg)
+	if err == nil || !strings.Contains(err.Error(), "unsupported host_key_check") {
+		t.Fatalf("Validate error = %v, want unsupported host_key_check error", err)
+	}
+}
+
 func TestSelectTunnelsUsesDefaultWhenNamesAreEmpty(t *testing.T) {
 	h := host("target", "")
 	h.Tunnels = []model.Tunnel{

@@ -1,6 +1,10 @@
 package tui
 
 import (
+	"bufio"
+	"context"
+	"errors"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -68,6 +72,60 @@ func TestResolveTunnelSelectorRejectsAmbiguousPrefix(t *testing.T) {
 	_, err := resolveTunnelSelector(host, "t")
 	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
 		t.Fatalf("resolveTunnelSelector() error = %v, want ambiguous error", err)
+	}
+}
+
+func TestConnectHostReturnsSSHErrorWithoutExiting(t *testing.T) {
+	oldRunInteractive := runInteractiveSSH
+	oldExitProcess := exitProcess
+	defer func() {
+		runInteractiveSSH = oldRunInteractive
+		exitProcess = oldExitProcess
+	}()
+
+	wantErr := errors.New("dial failed")
+	exited := false
+	runInteractiveSSH = func(context.Context, model.Config, []model.Host) error {
+		return wantErr
+	}
+	exitProcess = func(int) {
+		exited = true
+	}
+
+	cfg := testConfig()
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	err := connectHost(context.Background(), bufio.NewReader(strings.NewReader("")), "", statePath, cfg, "web1")
+	if err == nil || !strings.Contains(err.Error(), wantErr.Error()) {
+		t.Fatalf("connectHost() error = %v, want %v", err, wantErr)
+	}
+	if exited {
+		t.Fatal("connectHost exited after SSH error")
+	}
+}
+
+func TestConnectHostExitsAfterSuccessfulSession(t *testing.T) {
+	oldRunInteractive := runInteractiveSSH
+	oldExitProcess := exitProcess
+	defer func() {
+		runInteractiveSSH = oldRunInteractive
+		exitProcess = oldExitProcess
+	}()
+
+	exitCode := -1
+	runInteractiveSSH = func(context.Context, model.Config, []model.Host) error {
+		return nil
+	}
+	exitProcess = func(code int) {
+		exitCode = code
+	}
+
+	cfg := testConfig()
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	if err := connectHost(context.Background(), bufio.NewReader(strings.NewReader("")), "", statePath, cfg, "web1"); err != nil {
+		t.Fatalf("connectHost() error = %v, want nil", err)
+	}
+	if exitCode != 0 {
+		t.Fatalf("exit code = %d, want 0", exitCode)
 	}
 }
 
