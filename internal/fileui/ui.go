@@ -35,6 +35,7 @@ type ui struct {
 	entries  []filetransfer.Entry
 	visible  []filetransfer.Entry
 	showDot  bool
+	filter   string
 	message  string
 }
 
@@ -111,6 +112,11 @@ func (u *ui) dispatch(ctx context.Context, cmd command) error {
 	case "h":
 		u.showDot = !u.showDot
 		u.applyEntryFilter()
+	case "/":
+		if err := requireMaxArgs(cmd, 1); err != nil {
+			return err
+		}
+		return u.setFilter(firstArg(cmd.args))
 	case "c", "cd":
 		if err := requireMaxArgs(cmd, 1); err != nil {
 			return err
@@ -149,12 +155,29 @@ func (u *ui) refresh() error {
 
 func (u *ui) applyEntryFilter() {
 	u.visible = u.visible[:0]
+	needle := strings.ToLower(strings.TrimSpace(u.filter))
 	for _, entry := range u.entries {
 		if !u.showDot && isHiddenName(entry.Name) {
 			continue
 		}
+		if needle != "" && !strings.Contains(strings.ToLower(entry.Name), needle) {
+			continue
+		}
 		u.visible = append(u.visible, entry)
 	}
+}
+
+func (u *ui) setFilter(value string) error {
+	if value == "" {
+		var err error
+		value, err = u.readLine("Filter (empty clears)")
+		if err != nil {
+			return err
+		}
+	}
+	u.filter = strings.TrimSpace(value)
+	u.applyEntryFilter()
+	return nil
 }
 
 func (u *ui) changeDir(selector string) error {

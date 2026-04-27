@@ -63,10 +63,14 @@ func parseCommand(value string) command {
 		return command{}
 	}
 
+	if strings.HasPrefix(value, "/") {
+		return rawArgCommand("/", strings.TrimSpace(value[1:]))
+	}
+
 	rawFields := strings.Fields(value)
 	action := strings.ToLower(rawFields[0])
 	if action == "x" {
-		return remoteCommand(action, strings.TrimSpace(value[len(rawFields[0]):]))
+		return rawArgCommand(action, strings.TrimSpace(value[len(rawFields[0]):]))
 	}
 
 	fields := strings.Fields(strings.ReplaceAll(value, ",", " "))
@@ -76,11 +80,11 @@ func parseCommand(value string) command {
 	}
 }
 
-func remoteCommand(action string, remote string) command {
-	if remote == "" {
+func rawArgCommand(action string, arg string) command {
+	if arg == "" {
 		return command{action: action}
 	}
-	return command{action: action, args: []string{remote}}
+	return command{action: action, args: []string{arg}}
 }
 
 func firstArg(args []string) string {

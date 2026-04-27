@@ -31,6 +31,24 @@ func TestParseCommandPreservesXRemoteCommand(t *testing.T) {
 	}
 }
 
+func TestParseCommandPreservesFilterText(t *testing.T) {
+	cmd := parseCommand("/ app log")
+	if cmd.action != "/" {
+		t.Fatalf("action = %q, want /", cmd.action)
+	}
+	if len(cmd.args) != 1 || cmd.args[0] != "app log" {
+		t.Fatalf("args = %#v, want [app log]", cmd.args)
+	}
+
+	cmd = parseCommand("/app")
+	if cmd.action != "/" {
+		t.Fatalf("action = %q, want /", cmd.action)
+	}
+	if len(cmd.args) != 1 || cmd.args[0] != "app" {
+		t.Fatalf("args = %#v, want [app]", cmd.args)
+	}
+}
+
 func TestRequireMaxArgsRejectsExtraArguments(t *testing.T) {
 	err := requireMaxArgs(command{action: "u", args: []string{"a", "b", "c"}}, 2)
 	if err == nil {
@@ -99,6 +117,63 @@ func TestApplyEntryFilterHidesDotFilesByDefault(t *testing.T) {
 	}
 	u.showDot = true
 	u.applyEntryFilter()
+	if len(u.visible) != 2 {
+		t.Fatalf("visible entries = %d, want 2", len(u.visible))
+	}
+}
+
+func TestApplyEntryFilterMatchesNamesCaseInsensitively(t *testing.T) {
+	u := &ui{
+		filter: "APP",
+		entries: []filetransfer.Entry{
+			{Name: "README.md", Path: "/home/app/README.md"},
+			{Name: "app.log", Path: "/home/app/app.log"},
+			{Name: "config.yaml", Path: "/home/app/config.yaml"},
+			{Name: "Appfile", Path: "/home/app/Appfile"},
+		},
+	}
+	u.applyEntryFilter()
+	if len(u.visible) != 2 || u.visible[0].Name != "app.log" || u.visible[1].Name != "Appfile" {
+		t.Fatalf("visible = %#v, want app.log and Appfile", u.visible)
+	}
+}
+
+func TestResolveRemoteSelectorUsesFilteredVisibleEntries(t *testing.T) {
+	u := &ui{
+		cwd:    "/home/app",
+		filter: "app",
+		entries: []filetransfer.Entry{
+			{Name: "README.md", Path: "/home/app/README.md"},
+			{Name: "app.log", Path: "/home/app/app.log"},
+			{Name: "docs", Path: "/home/app/docs"},
+			{Name: "app.conf", Path: "/home/app/app.conf"},
+		},
+	}
+	u.applyEntryFilter()
+	got, err := u.resolveRemoteSelector("2")
+	if err != nil {
+		t.Fatalf("resolveRemoteSelector error = %v", err)
+	}
+	if got != "/home/app/app.conf" {
+		t.Fatalf("resolveRemoteSelector = %q, want /home/app/app.conf", got)
+	}
+}
+
+func TestSetFilterPromptsAndClearsEmptyInput(t *testing.T) {
+	u := &ui{
+		reader: bufio.NewReader(strings.NewReader("\n")),
+		filter: "app",
+		entries: []filetransfer.Entry{
+			{Name: "README.md", Path: "/home/app/README.md"},
+			{Name: "app.log", Path: "/home/app/app.log"},
+		},
+	}
+	if err := u.setFilter(""); err != nil {
+		t.Fatalf("setFilter error = %v", err)
+	}
+	if u.filter != "" {
+		t.Fatalf("filter = %q, want empty", u.filter)
+	}
 	if len(u.visible) != 2 {
 		t.Fatalf("visible entries = %d, want 2", len(u.visible))
 	}

@@ -10,7 +10,11 @@ func (u *ui) render() {
 	if u.showDot {
 		hiddenLabel = "hidden files: on"
 	}
-	fmt.Printf("Host: %s%s%s  Remote: %s%s%s  %s%s%s\n", styleBold, u.hostName, styleReset, styleBold, u.cwd, styleReset, styleDim, hiddenLabel, styleReset)
+	status := hiddenLabel
+	if u.filter != "" {
+		status += "  filter: " + u.filter
+	}
+	fmt.Printf("Host: %s%s%s  Remote: %s%s%s  %s%s%s\n", styleBold, u.hostName, styleReset, styleBold, u.cwd, styleReset, styleDim, status, styleReset)
 	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("%s%-4s %-5s %-10s %s%s\n", styleBold, "NO", "TYPE", "SIZE", "NAME", styleReset)
 	fmt.Printf(" %-3d %-5s %-10s %s\n", 0, "dir", "-", "..")
@@ -24,9 +28,9 @@ func (u *ui) render() {
 		fmt.Printf(" %-3d %-5s %-10s %s\n", i+1, kind, formatBytes(entry.Size), name)
 	}
 	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("  %s[c]%s cd  %s[u]%s upload  %s[d]%s download  %s[x]%s run\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
-	fmt.Printf("  %s[h]%s hidden  %s[r]%s refresh  %s[?]%s help  %s[q]%s quit\n",
+	fmt.Printf("  %s[c]%s cd  %s[u]%s upload  %s[d]%s download  %s[x]%s run  %s[r]%s refresh\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[h]%s hidden  %s[/]%s filter  %s[?]%s help  %s[q]%s quit\n",
 		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
 }
 
@@ -46,9 +50,10 @@ func (u *ui) printHelp() {
 	fmt.Printf("  %sc <path>%s             cd path\n", styleBold, styleReset)
 	fmt.Printf("  %su [local [remote]]%s   upload a local file or directory\n", styleBold, styleReset)
 	fmt.Printf("  %sd [remote [local]]%s   download a remote file or directory\n", styleBold, styleReset)
-	fmt.Printf("  %sx <cmd>%s              run a command in the current remote directory\n", styleBold, styleReset)
-	fmt.Printf("  %sh%s                    toggle hidden files\n", styleBold, styleReset)
+	fmt.Printf("  %sx <cmd>%s              run command in current remote directory\n", styleBold, styleReset)
 	fmt.Printf("  %sr%s                    refresh\n", styleBold, styleReset)
+	fmt.Printf("  %sh%s                    toggle hidden files\n", styleBold, styleReset)
+	fmt.Printf("  %s/ [filter]%s           filter current listing, empty clears\n", styleBold, styleReset)
 	fmt.Printf("  %s?%s                    help\n", styleBold, styleReset)
 	fmt.Printf("  %sq%s                    quit\n", styleBold, styleReset)
 	fmt.Println()
