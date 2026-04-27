@@ -30,26 +30,24 @@ func (u *ui) render() {
 		fmt.Printf(" %-3d %-5s %-10s %s\n", i+1, kind, formatBytes(entry.Size), name)
 	}
 	fmt.Println()
-	fmt.Printf("  %scd <no|path>%s    open remote directory\n", styleBold, styleReset)
-	fmt.Printf("  %sgoto <path>%s     jump to remote directory\n", styleBold, styleReset)
-	fmt.Printf("  %sup [local]%s      upload local path; remote path defaults to current directory\n", styleBold, styleReset)
-	fmt.Printf("  %sdown [no|path]%s  download remote path; path is relative to current directory\n", styleBold, styleReset)
-	fmt.Printf("  %sh%s               toggle hidden files    %sr%s refresh    %s?%s help    %sq%s quit\n",
-		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[c]%s cd  %s[u]%s upload  %s[d]%s download  %s[h]%s hidden  %s[r]%s refresh\n",
+		styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset, styleBold, styleReset)
+	fmt.Printf("  %s[?]%s help  %s[q]%s quit\n",
+		styleBold, styleReset, styleBold, styleReset)
 }
 
 func (u *ui) printHelp() {
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Printf("  %scd 0%s            go to parent directory\n", styleBold, styleReset)
-	fmt.Printf("  %scd <no>%s         open numbered directory\n", styleBold, styleReset)
-	fmt.Printf("  %scd <path>%s       open relative, absolute, or ~/ remote directory\n", styleBold, styleReset)
-	fmt.Printf("  %sgoto <path>%s     jump to remote directory\n", styleBold, styleReset)
-	fmt.Printf("  %sup [local]%s      upload a local file or directory\n", styleBold, styleReset)
-	fmt.Printf("  %sdown [no|path]%s  download a remote file or directory\n", styleBold, styleReset)
+	fmt.Printf("  %sc 0%s             go to parent directory\n", styleBold, styleReset)
+	fmt.Printf("  %sc <no>%s          open numbered directory\n", styleBold, styleReset)
+	fmt.Printf("  %sc <path>%s        open relative, absolute, or ~/ remote directory\n", styleBold, styleReset)
+	fmt.Printf("  %scd <path>%s       alias for c\n", styleBold, styleReset)
+	fmt.Printf("  %su [local] [remote]%s upload a local file or directory\n", styleBold, styleReset)
+	fmt.Printf("  %sd [remote] [local]%s download a remote file or directory\n", styleBold, styleReset)
 	fmt.Printf("  %sh%s               toggle hidden files\n", styleBold, styleReset)
 	fmt.Printf("  %sr%s               refresh directory\n", styleBold, styleReset)
 	fmt.Printf("  %sq%s               quit file UI\n", styleBold, styleReset)
 	fmt.Println()
-	fmt.Println("Remote paths entered here are resolved relative to the current remote directory unless absolute or ~/ prefixed.")
+	fmt.Println("u and d prompt only for arguments that were not provided.")
 }

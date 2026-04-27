@@ -98,7 +98,7 @@ func manageTunnels(ctx context.Context, reader *bufio.Reader, configPath string,
 			printTunnelHelp()
 			waitEnter(reader)
 			continue
-		case "b":
+		case "q":
 			return nil
 		case "a":
 			err = addTunnel(reader, configPath, cfg, hostIndex)
@@ -141,7 +141,7 @@ func printTunnelHelp() {
 	fmt.Printf("  %se <tun>%s       edit tunnel <tun>\n", styleBold, styleReset)
 	fmt.Printf("  %sd <tun>%s       delete tunnel <tun>\n", styleBold, styleReset)
 	fmt.Printf("  %s?%s             show this help\n", styleBold, styleReset)
-	fmt.Printf("  %sb%s             back to main menu\n", styleBold, styleReset)
+	fmt.Printf("  %sq%s             back to main menu\n", styleBold, styleReset)
 	fmt.Println()
 	fmt.Printf("  %s<tun>%s = tunnel name or number, comma/space separated\n", styleBold, styleReset)
 	fmt.Println("  All commands prompt interactively when arguments are omitted.")

@@ -87,7 +87,7 @@ func Run(ctx context.Context, configPath string, statePath string) error {
 			printMainHelp()
 			waitEnter(reader)
 			continue
-		case "q":
+		case "q", "b":
 			return nil
 		case "a":
 			err = addHost(reader, configPath, cfg)

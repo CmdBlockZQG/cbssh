@@ -8,12 +8,19 @@ import (
 )
 
 func TestParseCommandSplitsCommaAndWhitespace(t *testing.T) {
-	cmd := parseCommand("down 1, logs/app.log")
-	if cmd.action != "down" {
-		t.Fatalf("action = %q, want down", cmd.action)
+	cmd := parseCommand("d 1, logs/app.log")
+	if cmd.action != "d" {
+		t.Fatalf("action = %q, want d", cmd.action)
 	}
 	if len(cmd.args) != 2 || cmd.args[0] != "1" || cmd.args[1] != "logs/app.log" {
 		t.Fatalf("args = %#v, want [1 logs/app.log]", cmd.args)
+	}
+}
+
+func TestRequireMaxArgsRejectsExtraArguments(t *testing.T) {
+	err := requireMaxArgs(command{action: "u", args: []string{"a", "b", "c"}}, 2)
+	if err == nil {
+		t.Fatal("requireMaxArgs error = nil, want error")
 	}
 }
 

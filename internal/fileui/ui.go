@@ -100,24 +100,31 @@ func (u *ui) loop(ctx context.Context) error {
 
 func (u *ui) dispatch(ctx context.Context, cmd command) error {
 	switch cmd.action {
-	case "q", "quit", "b", "back":
+	case "q":
 		return io.EOF
 	case "?":
 		u.printHelp()
 		u.waitEnter()
-	case "r", "refresh":
+	case "r":
 		return u.refresh()
-	case "h", "hidden", "toggle":
+	case "h":
 		u.showDot = !u.showDot
 		u.applyEntryFilter()
-	case "cd", "open":
+	case "c", "cd":
+		if err := requireMaxArgs(cmd, 1); err != nil {
+			return err
+		}
 		return u.changeDir(firstArg(cmd.args))
-	case "goto":
-		return u.gotoDir(firstArg(cmd.args))
-	case "up", "upload":
-		return u.upload(ctx, firstArg(cmd.args))
-	case "down", "download", "get":
-		return u.download(ctx, firstArg(cmd.args))
+	case "u":
+		if err := requireMaxArgs(cmd, 2); err != nil {
+			return err
+		}
+		return u.upload(ctx, cmd.args)
+	case "d":
+		if err := requireMaxArgs(cmd, 2); err != nil {
+			return err
+		}
+		return u.download(ctx, cmd.args)
 	default:
 		return fmt.Errorf("unknown command %q, press ? for help", cmd.action)
 	}
@@ -173,29 +180,8 @@ func (u *ui) changeDir(selector string) error {
 	return u.refresh()
 }
 
-func (u *ui) gotoDir(raw string) error {
-	if raw == "" {
-		raw = u.prompt("Remote directory", "")
-	}
-	if raw == "" {
-		return errCanceled
-	}
-	next, err := u.session.ResolveRemotePath(u.cwd, raw)
-	if err != nil {
-		return err
-	}
-	info, err := u.session.Stat(next)
-	if err != nil {
-		return fmt.Errorf("stat remote path %s: %w", next, err)
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("remote path %s is not a directory", next)
-	}
-	u.cwd = next
-	return u.refresh()
-}
-
-func (u *ui) upload(ctx context.Context, localPath string) error {
+func (u *ui) upload(ctx context.Context, args []string) error {
+	localPath := argAt(args, 0)
 	if localPath == "" {
 		localPath = u.prompt("Local path to upload", "")
 	}
@@ -214,7 +200,10 @@ func (u *ui) upload(ctx context.Context, localPath string) error {
 		}
 		opts.Recursive = true
 	}
-	remoteInput := u.prompt("Remote path relative to current directory", ".")
+	remoteInput := argAt(args, 1)
+	if remoteInput == "" {
+		remoteInput = u.prompt("Remote path relative to current directory", ".")
+	}
 	remoteDest, err := u.uploadDestination(localPath, remoteInput)
 	if err != nil {
 		return err
@@ -232,7 +221,8 @@ func (u *ui) upload(ctx context.Context, localPath string) error {
 	return u.refresh()
 }
 
-func (u *ui) download(ctx context.Context, selector string) error {
+func (u *ui) download(ctx context.Context, args []string) error {
+	selector := argAt(args, 0)
 	if selector == "" {
 		selector = u.prompt("Remote path or number", ".")
 	}
@@ -254,7 +244,10 @@ func (u *ui) download(ctx context.Context, selector string) error {
 		}
 		opts.Recursive = true
 	}
-	localInput := u.prompt("Local destination", ".")
+	localInput := argAt(args, 1)
+	if localInput == "" {
+		localInput = u.prompt("Local destination", ".")
+	}
 	localDest := downloadDestination(remoteSrc, localInput)
 	force, err := u.confirmLocalOverwrite(localDest)
 	if err != nil {
@@ -359,4 +352,18 @@ func (u *ui) resolveRemoteSelector(selector string) (string, error) {
 
 func isHiddenName(name string) bool {
 	return strings.HasPrefix(name, ".")
+}
+
+func requireMaxArgs(cmd command, max int) error {
+	if len(cmd.args) > max {
+		return fmt.Errorf("%s accepts at most %d argument(s)", cmd.action, max)
+	}
+	return nil
+}
+
+func argAt(args []string, index int) string {
+	if index >= len(args) {
+		return ""
+	}
+	return args[index]
 }
