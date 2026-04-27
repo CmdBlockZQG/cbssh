@@ -47,7 +47,7 @@ cbssh
 
 | Command | Description |
 |---|---|
-| `cbssh ls [--sort recent\|name]` | List all configured hosts |
+| `cbssh ls [-s recent\|name]` | List all configured hosts (`-s` / `--sort`) |
 | `cbssh info <name>` | Show host details (address, user, jump chain, tunnels) |
 | `cbssh connect <name>` | Open an interactive SSH session |
 
@@ -92,13 +92,11 @@ The following top-level commands are aliases for
 |---|---|
 | `cbssh c <name>` | `cbssh connect <name>` |
 | `cbssh up <name> <local> [remote]` | `cbssh file upload <name> <local> [remote]` |
-| `cbssh upload ...` | `cbssh file upload ...` |
 | `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
-| `cbssh download ...` | `cbssh file download ...` |
 | `cbssh browse <name>` | `cbssh file tui <name>` |
 | `cbssh status [name]` | `cbssh tunnel status [name]` |
 | `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
-| `cbssh tunnel <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
+| `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
 
 ## Configuration
 

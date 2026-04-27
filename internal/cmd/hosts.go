@@ -53,7 +53,7 @@ func (a *app) newLSCommand() *cobra.Command {
 			return nil
 		},
 	}
-	c.Flags().StringVar(&sortMode, "sort", hostview.SortRecent, "Sort hosts by recent or name")
+	c.Flags().StringVarP(&sortMode, "sort", "s", hostview.SortRecent, "Sort hosts by recent or name")
 	return c
 }
 
@@ -148,7 +148,12 @@ func authSummary(host model.Host) string {
 	case model.AuthTypePassword:
 		return "password ******"
 	case model.AuthTypeKey:
-		return fmt.Sprintf("key %s", host.Auth.KeyPath)
+		parts := []string{"key"}
+		if host.Auth.UseAgent {
+			parts = append(parts, "(agent)")
+		}
+		parts = append(parts, host.Auth.KeyPath)
+		return strings.Join(parts, " ")
 	default:
 		return host.Auth.Type
 	}

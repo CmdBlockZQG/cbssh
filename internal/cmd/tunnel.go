@@ -14,14 +14,10 @@ import (
 
 func (a *app) newTunnelCommand() *cobra.Command {
 	tunnelCmd := &cobra.Command{
-		Use:   "tunnel <name> [tunnel...]",
+		Use:   "tunnel",
 		Short: "Manage SSH tunnels",
-		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return cmd.Help()
-			}
-			return a.runTunnelStart(cmd, args[0], args[1:])
+			return cmd.Help()
 		},
 	}
 	tunnelCmd.AddCommand(&cobra.Command{
@@ -88,6 +84,17 @@ func (a *app) newStopCommand() *cobra.Command {
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return a.runTunnelStop(cmd, args)
+		},
+	}
+}
+
+func (a *app) newStartCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start <name> [tunnel...]",
+		Short: "Alias for 'tunnel start'",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return a.runTunnelStart(cmd, args[0], args[1:])
 		},
 	}
 }

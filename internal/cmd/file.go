@@ -22,8 +22,8 @@ func (a *app) newFileCommand() *cobra.Command {
 			return cmd.Help()
 		},
 	}
-	fileCmd.AddCommand(a.newUploadCommandWithUse("upload <name> <local> [remote]", "Upload files over SFTP"))
-	fileCmd.AddCommand(a.newDownloadCommandWithUse("download <name> <remote> [local]", "Download files over SFTP"))
+	fileCmd.AddCommand(a.newFileUploadCommand())
+	fileCmd.AddCommand(a.newFileDownloadCommand())
 	fileCmd.AddCommand(a.newFileTUICommand())
 	return fileCmd
 }
@@ -67,19 +67,15 @@ func (a *app) newBrowseCommand() *cobra.Command {
 	}
 }
 
-// Top-level upload/download/browse commands stay as shortcuts, while file upload/file
+// Top-level up/down/browse commands stay as shortcuts, while file upload/file
 // download/file tui remain the canonical command namespace.
-func (a *app) newUploadCommand() *cobra.Command {
-	return a.newUploadCommandWithUse("upload <name> <local> [remote]", "Alias for 'file upload'")
-}
-
-func (a *app) newUploadCommandWithUse(use string, short string) *cobra.Command {
+func (a *app) newFileUploadCommand() *cobra.Command {
 	var opts filetransfer.Options
 	var quiet bool
 	c := &cobra.Command{
-		Use:     use,
+		Use:     "upload <name> <local> [remote]",
 		Aliases: []string{"up"},
-		Short:   short,
+		Short:   "Upload files over SFTP",
 		Long:    remotePathHelp("Upload files over SFTP"),
 		Args:    cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -106,19 +102,79 @@ func (a *app) newUploadCommandWithUse(use string, short string) *cobra.Command {
 	return c
 }
 
-func (a *app) newDownloadCommand() *cobra.Command {
-	return a.newDownloadCommandWithUse("download <name> <remote> [local]", "Alias for 'file download'")
-}
-
-func (a *app) newDownloadCommandWithUse(use string, short string) *cobra.Command {
+func (a *app) newFileDownloadCommand() *cobra.Command {
 	var opts filetransfer.Options
 	var quiet bool
 	c := &cobra.Command{
-		Use:     use,
+		Use:     "download <name> <remote> [local]",
 		Aliases: []string{"down"},
-		Short:   short,
+		Short:   "Download files over SFTP",
 		Long:    remotePathHelp("Download files over SFTP"),
 		Args:    cobra.RangeArgs(2, 3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := config.Load(a.configPath)
+			if err != nil {
+				return err
+			}
+			localPath := ""
+			if len(args) == 3 {
+				localPath = args[2]
+			}
+			result, err := filetransfer.Download(cmd.Context(), cfg, args[0], args[1], localPath, opts)
+			if err != nil {
+				return err
+			}
+			_ = state.MarkHostUsed(a.statePath, args[0], time.Now())
+			if !quiet {
+				printTransferResult(cmd.OutOrStdout(), "Downloaded", result)
+			}
+			return nil
+		},
+	}
+	addFileTransferFlags(c, &opts, &quiet)
+	return c
+}
+
+func (a *app) newUpCommand() *cobra.Command {
+	var opts filetransfer.Options
+	var quiet bool
+	c := &cobra.Command{
+		Use:   "up <name> <local> [remote]",
+		Short: "Alias for 'file upload'",
+		Long:  remotePathHelp("Upload files over SFTP"),
+		Args:  cobra.RangeArgs(2, 3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := config.Load(a.configPath)
+			if err != nil {
+				return err
+			}
+			remotePath := ""
+			if len(args) == 3 {
+				remotePath = args[2]
+			}
+			result, err := filetransfer.Upload(cmd.Context(), cfg, args[0], args[1], remotePath, opts)
+			if err != nil {
+				return err
+			}
+			_ = state.MarkHostUsed(a.statePath, args[0], time.Now())
+			if !quiet {
+				printTransferResult(cmd.OutOrStdout(), "Uploaded", result)
+			}
+			return nil
+		},
+	}
+	addFileTransferFlags(c, &opts, &quiet)
+	return c
+}
+
+func (a *app) newDownCommand() *cobra.Command {
+	var opts filetransfer.Options
+	var quiet bool
+	c := &cobra.Command{
+		Use:   "down <name> <remote> [local]",
+		Short: "Alias for 'file download'",
+		Long:  remotePathHelp("Download files over SFTP"),
+		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load(a.configPath)
 			if err != nil {

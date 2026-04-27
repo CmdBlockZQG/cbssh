@@ -46,7 +46,7 @@ cbssh
 
 | 命令 | 说明 |
 |---|---|
-| `cbssh ls [--sort recent\|name]` | 列出所有已配置的主机 |
+| `cbssh ls [-s recent\|name]` | 列出所有已配置的主机（`-s` / `--sort`） |
 | `cbssh info <name>` | 查看主机详细信息 |
 | `cbssh connect <name>` | 打开交互式 SSH 会话 |
 
@@ -90,13 +90,11 @@ cbssh
 |---|---|
 | `cbssh c <name>` | `cbssh connect <name>` |
 | `cbssh up <name> <local> [remote]` | `cbssh file upload <name> <local> [remote]` |
-| `cbssh upload ...` | `cbssh file upload ...` |
 | `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
-| `cbssh download ...` | `cbssh file download ...` |
 | `cbssh browse <name>` | `cbssh file tui <name>` |
 | `cbssh status [name]` | `cbssh tunnel status [name]` |
 | `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
-| `cbssh tunnel <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
+| `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
 
 ## 配置
 
