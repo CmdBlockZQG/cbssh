@@ -9,6 +9,12 @@ import (
 	"github.com/cmdblock/cbssh/internal/model"
 )
 
+var sortedHosts []model.Host
+
+func setSortedHosts(hosts []model.Host) {
+	sortedHosts = hosts
+}
+
 func selectHost(reader *bufio.Reader, cfg model.Config, selector string) (int, error) {
 	if len(cfg.Hosts) == 0 {
 		return 0, fmt.Errorf("no hosts configured")
@@ -30,10 +36,18 @@ func resolveHostSelector(cfg model.Config, value string) (int, error) {
 		return 0, errCanceled
 	}
 	if number, err := strconv.Atoi(value); err == nil {
-		if number < 1 || number > len(cfg.Hosts) {
+		hosts := sortedHosts
+		if hosts == nil {
+			hosts = cfg.Hosts
+		}
+		if number < 1 || number > len(hosts) {
 			return 0, fmt.Errorf("host number %d out of range", number)
 		}
-		return number - 1, nil
+		selected := hosts[number-1]
+		if idx, ok := hostIndexByName(cfg, selected.Name); ok {
+			return idx, nil
+		}
+		return 0, fmt.Errorf("host number %d not found", number)
 	}
 	if index, ok, ambiguous := findNamedHost(cfg, func(name string) bool { return name == value }); ok {
 		return index, nil

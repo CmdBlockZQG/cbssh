@@ -2,25 +2,16 @@ package tui
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/cmdblock/cbssh/internal/model"
 )
 
-func printDashboard(configPath string, cfg model.Config, st model.State, sortRecent bool) {
+func printDashboard(configPath string, sorted []model.Host, cfg model.Config, st model.State, sortRecent bool) {
 	active := map[string]int{}
 	for _, entry := range st.Tunnels {
 		active[entry.HostName]++
-	}
-	hosts := append([]model.Host(nil), cfg.Hosts...)
-	if sortRecent {
-		sort.SliceStable(hosts, func(i, j int) bool {
-			return st.Hosts[hosts[i].Name].LastUsed.After(st.Hosts[hosts[j].Name].LastUsed)
-		})
-	} else {
-		sort.SliceStable(hosts, func(i, j int) bool { return hosts[i].Name < hosts[j].Name })
 	}
 	sortLabel := "recent"
 	if !sortRecent {
@@ -36,11 +27,11 @@ func printDashboard(configPath string, cfg model.Config, st model.State, sortRec
 	}
 	fmt.Printf("Config: %s%s%s", styleDim, configPath, styleReset)
 	fmt.Printf("  Hosts: %d  Active Tunnels: %d  %ssort: %s%s\n\n", len(cfg.Hosts), len(st.Tunnels), styleDim, sortLabel, styleReset)
-	if len(hosts) == 0 {
+	if len(sorted) == 0 {
 		fmt.Println("No hosts configured.")
 	} else {
 		fmt.Printf("%s%-4s %-16s %-21s %-10s %-5s %-5s%s\n", styleBold, "NO", "NAME", "HOST", "USER", "TUN", "ACT", styleReset)
-		for i, host := range hosts {
+		for i, host := range sorted {
 			count := active[host.Name]
 			countStr := strconv.Itoa(count)
 			if count > 0 {
