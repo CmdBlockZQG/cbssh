@@ -22,17 +22,29 @@ func ExpandPath(path string) string {
 	return os.ExpandEnv(path)
 }
 
+func CanonicalPath(path string) string {
+	if path == "" {
+		return ""
+	}
+	path = ExpandPath(path)
+	if absolute, err := filepath.Abs(path); err == nil {
+		path = absolute
+	}
+	path = filepath.Clean(path)
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return resolved
+	}
+	return path
+}
+
 func DefaultConfigPath() string {
 	if value := os.Getenv("CBSSH_CONFIG"); value != "" {
 		return ExpandPath(value)
 	}
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "cbssh", "config.toml")
+		return filepath.Join(dir, "cbssh", "tunnels.toml")
 	}
-	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".config", "cbssh", "config.toml")
-	}
-	return filepath.Join(".", "config.toml")
+	return filepath.Join(".", "tunnels.toml")
 }
 
 func DefaultStatePath() string {
@@ -41,21 +53,21 @@ func DefaultStatePath() string {
 	}
 	if runtime.GOOS == "darwin" {
 		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, "Library", "Application Support", "cbssh", "state.json")
+			return filepath.Join(home, "Library", "Application Support", "cbssh", "runtime.json")
 		}
 	}
 	if value := os.Getenv("XDG_STATE_HOME"); value != "" {
-		return filepath.Join(ExpandPath(value), "cbssh", "state.json")
+		return filepath.Join(ExpandPath(value), "cbssh", "runtime.json")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".local", "state", "cbssh", "state.json")
+		return filepath.Join(home, ".local", "state", "cbssh", "runtime.json")
 	}
-	return filepath.Join(".", "state.json")
+	return filepath.Join(".", "runtime.json")
 }
 
-func DefaultLogDir() string {
-	if value := os.Getenv("CBSSH_LOG_DIR"); value != "" {
-		return ExpandPath(value)
+func RuntimeDir(statePath string) string {
+	if statePath == "" {
+		statePath = DefaultStatePath()
 	}
-	return filepath.Join(filepath.Dir(DefaultStatePath()), "logs")
+	return filepath.Dir(ExpandPath(statePath))
 }

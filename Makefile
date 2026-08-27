@@ -3,8 +3,8 @@ CMD := ./cmd/cbssh
 BIN_DIR := bin
 DIST_DIR := dist
 DEV_DIR := .tmp/cbssh
-DEV_CONFIG := $(DEV_DIR)/config.toml
-DEV_STATE := $(DEV_DIR)/state.json
+DEV_CONFIG := $(DEV_DIR)/tunnels.toml
+DEV_STATE := $(DEV_DIR)/runtime.json
 
 GO ?= go
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -24,7 +24,7 @@ help:
 	@printf "  make <target> [ARGS='...'] [CONFIG=...] [STATE=...] [VERSION=...]\n\n"
 	@printf "Targets:\n"
 	@printf "  run                 Run cbssh with the default user config\n"
-	@printf "  dev                 Run cbssh with local debug config/state under .tmp/cbssh\n"
+	@printf "  dev                 Run cbssh with local tunnel config/state under .tmp/cbssh\n"
 	@printf "  dev-init            Create local debug config/state paths\n"
 	@printf "  build               Build local binary into bin/cbssh\n"
 	@printf "  dist                Build linux/darwin amd64/arm64 binaries into dist/\n"
@@ -36,7 +36,7 @@ help:
 	@printf "  tidy                Run go mod tidy\n"
 	@printf "  clean               Remove local build outputs\n\n"
 	@printf "Examples:\n"
-	@printf "  make run ARGS='ls'\n"
+	@printf "  make run ARGS='list'\n"
 	@printf "  make dev ARGS='config validate'\n"
 	@printf "  make build VERSION=0.1.0\n"
 	@printf "  make dist VERSION=0.1.0\n"

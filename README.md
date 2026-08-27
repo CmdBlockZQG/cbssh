@@ -1,259 +1,127 @@
 # cbssh
 
-[中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md)
 
-> SSH connection and tunnel manager — configure once, connect anywhere.
+`cbssh` is a small background SSH tunnel manager. It does not store hosts,
+users, keys, or jump hosts. Instead, it invokes the system OpenSSH client and
+uses the user's existing `~/.ssh/config`.
 
-`cbssh` manages SSH hosts, multi-hop jump chains, file transfers over SFTP, and long-running
-SSH tunnels (local, remote, dynamic) from a single TOML config file. Built in Go with no
-runtime dependencies.
+Multiple tunnels that reference the same SSH Host share one cbssh-managed
+OpenSSH Master connection.
 
-## Features
+## Requirements
 
-- Terminal-based TUI for browsing hosts and managing tunnels
-- Multi-hop SSH connections with recursive jump resolution
-- SFTP file upload/download with recursive and force-overwrite support
-- Interactive remote file browser (TUI)
-- Long-running background tunnels (local, remote, SOCKS5 dynamic)
-- TOML configuration with validation and in-editor editing
-- Key-based and password authentication, with SSH agent support
-
-## Quick Start
-
-```bash
-# Install from GitHub Releases
-# Download the linux/darwin amd64/arm64 binary from:
-# https://github.com/CmdBlockZQG/cbssh/releases
-
-# Or install with Go
-go install github.com/cmdblock/cbssh/cmd/cbssh@latest
-
-# Create default config
-cbssh config init
-
-# Edit config to add your hosts
-cbssh config edit
-
-# Launch the dashboard
-cbssh
-```
-
-## Commands
-
-### Dashboard
-
-| Command | Description |
-|---|---|
-| `cbssh` | Open the interactive TUI (host list, tunnels, file browser) |
-| `cbssh tui` | Same as above (explicit) |
-
-### Hosts
-
-| Command | Description |
-|---|---|
-| `cbssh ls [-s recent\|name]` | List all configured hosts (`-s` / `--sort`) |
-| `cbssh info <name>` | Show host details (address, user, jump chain, tunnels) |
-| `cbssh connect <name>` | Open an interactive SSH session |
-
-### File Transfer
-
-| Command | Description |
-|---|---|
-| `cbssh file upload <name> <local> [remote]` | Upload file or directory via SFTP |
-| `cbssh file download <name> <remote> [local]` | Download file or directory via SFTP |
-| `cbssh file tui <name>` | Browse remote files in interactive TUI |
-
-File transfer flags: `-r, --recursive` (directories), `-f, --force` (overwrite), `-q, --quiet`.
-
-### Tunnels
-
-| Command | Description |
-|---|---|
-| `cbssh tunnel start <name> [tunnel...]` | Start default or specified tunnels |
-| `cbssh tunnel stop [name] [tunnel...]` | Stop active tunnels |
-| `cbssh tunnel status [name]` | List active tunnels |
-
-Omitting tunnel names on `start` launches all default tunnels; on `stop` stops **all** active
-tunnels for the host regardless of the `default` flag. Omitting the host name on `stop`/`status`
-acts across all hosts.
-
-### Configuration
-
-| Command | Description |
-|---|---|
-| `cbssh config path` | Print the config file path |
-| `cbssh config init` | Create an empty config if missing |
-| `cbssh config validate` | Validate config syntax and file permissions |
-| `cbssh config edit` | Open config in `$EDITOR` (falls back to `vi`) |
-
-### Shortcuts
-
-The following top-level commands are aliases for
-`file` and `tunnel` subcommands:
-
-| Shortcut | Equivalent |
-|---|---|
-| `cbssh c <name>` | `cbssh connect <name>` |
-| `cbssh up <name> <local> [remote]` | `cbssh file upload <name> <local> [remote]` |
-| `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
-| `cbssh browse <name>` | `cbssh file tui <name>` |
-| `cbssh status [name]` | `cbssh tunnel status [name]` |
-| `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
-| `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
+- Linux or macOS
+- An OpenSSH client supporting `-M`, `-S`, and `-O forward/cancel/check/exit`
+- Go 1.26.2 or newer when building from source
 
 ## Configuration
 
-Default config path is platform-dependent:
+Default manifest paths:
 
-| OS | Path |
+| Platform | Path |
 |---|---|
-| Linux | `~/.config/cbssh/config.toml` |
-| macOS | `~/Library/Application Support/cbssh/config.toml` |
+| Linux | `~/.config/cbssh/tunnels.toml` |
+| macOS | `~/Library/Application Support/cbssh/tunnels.toml` |
 
-Pass `--config` and `--state` flags to override defaults (persistent flags available on all
-commands).
+Define the connection in OpenSSH first:
 
-### Complete Example
+```sshconfig
+Host prod
+    HostName 203.0.113.10
+    User ubuntu
+    IdentityFile ~/.ssh/id_ed25519
+    ProxyJump bastion
+    ServerAliveInterval 30
+```
+
+Then define the managed forwards in `tunnels.toml`:
 
 ```toml
-default_key_path = "~/.ssh/id_ed25519"
-host_key_check = "insecure"
+version = 1
 
-[[hosts]]
-name = "bastion"
-host = "203.0.113.10"
-port = 22
-user = "ubuntu"
-
-[hosts.auth]
-type = "key"
-key_path = "~/.ssh/id_ed25519"
-# passphrase = "optional-key-passphrase"
-# use_agent = true
-
-[[hosts]]
+[[tunnels]]
 name = "prod-db"
-host = "10.0.1.20"
-port = 22
-user = "ubuntu"
-jump = "bastion"
-
-[hosts.auth]
-type = "password"
-password = "plain-text-password"
-
-[[hosts.tunnels]]
-name = "mysql"
+host = "prod"
 type = "local"
-listen_host = "127.0.0.1"
-listen_port = 3307
+bind_host = "127.0.0.1"
+bind_port = 15432
 target_host = "127.0.0.1"
-target_port = 3306
-default = true
+target_port = 5432
 
-[[hosts.tunnels]]
-name = "socks"
+[[tunnels]]
+name = "prod-socks"
+host = "prod"
 type = "dynamic"
-listen_host = "127.0.0.1"
-listen_port = 1080
-default = false
+bind_host = "127.0.0.1"
+bind_port = 1080
 ```
 
-`jump` references another host by name. `cbssh` recursively resolves the full chain —
-a host can jump through a bastion that itself jumps through another host.
+`type` must be `local`, `remote`, or `dynamic`. `bind_host` defaults to
+`127.0.0.1`, and ports must be between 1 and 65535.
 
-`port` defaults to `22` if omitted. `default_key_path` defaults to `~/.ssh/id_ed25519`
-when not set; it is also the fallback when an individual host omits `key_path`.
+cbssh starts its Master with `ClearAllForwardings=yes`, so `LocalForward`,
+`RemoteForward`, and `DynamicForward` entries in SSH config are not imported.
+All other OpenSSH behavior, including authentication, host key checking,
+`Include`, `Match`, `ProxyJump`, and `ProxyCommand`, remains in effect.
 
-### Auth Fields
-
-| Field | Required | Description |
-|---|---|---|
-| `type` | No | `key` or `password`; auto-detected from other fields if omitted |
-| `password` | For `password` | Plain-text password |
-| `key_path` | No | Path to the private key file; falls back to `default_key_path` |
-| `passphrase` | No | Passphrase for encrypted private keys |
-| `use_agent` | No | Use `SSH_AUTH_SOCK` agent for key authentication |
-
-### Tunnel Types
-
-| Type | Equivalent | Requires |
-|---|---|---|
-| `local` | `ssh -L` | `target_host`, `target_port` |
-| `remote` | `ssh -R` | `target_host`, `target_port` |
-| `dynamic` | `ssh -D` | — (SOCKS5 proxy on `listen_host:listen_port`) |
-
-### Tunnel Fields
-
-| Field | Required | Default | Description |
-|---|---|---|---|
-| `name` | Yes | — | Tunnel identifier |
-| `type` | No | `local` | `local`, `remote`, or `dynamic` |
-| `listen_host` | No | `127.0.0.1` | Listener address; local for `local`/`dynamic`, remote for `remote` |
-| `listen_port` | Yes | — | Listener port; local for `local`/`dynamic`, remote for `remote` |
-| `target_host` | For `local`/`remote` | — | Target server address |
-| `target_port` | For `local`/`remote` | — | Target server port |
-| `default` | No | `false` | Start this tunnel when no names are given to `tunnel start` |
-
-### Host Key Checking
-
-| Value | Behavior |
-|---|---|
-| `insecure` | Skip host key verification (default) |
-| `known_hosts` | Verify against `~/.ssh/known_hosts` |
-| `known-hosts` | Same as `known_hosts` |
-
-## Build From Source
-
-Building from source requires Go 1.26.2 or newer.
+## Commands
 
 ```bash
-# Install with Go
-go install github.com/cmdblock/cbssh/cmd/cbssh@latest
+cbssh config init
+cbssh config validate
+cbssh list
 
-# Build locally
-make build                  # → bin/cbssh
-
-# Cross-compile (linux/darwin × amd64/arm64)
-make dist                   # → dist/
-
-# Test
-make test
-make vet
-
-# Dev mode (uses .tmp/cbssh/ for config/state)
-make dev-init
-make dev ARGS='ls'
+cbssh start prod-db prod-socks
+cbssh start --all
+cbssh status
+cbssh stop prod-db
+cbssh stop --all
+cbssh restart prod-db
+cbssh logs prod-db
 ```
 
-## Internals
+`start` and `stop` require names or an explicit `--all`. Both operations are
+idempotent. The shared Master exits only after its final tunnel stops.
+Restarting one tunnel continues to reuse the existing Master. After changing
+SSH config, use `restart --all`, or stop every tunnel for that Host before
+starting them again.
 
-### Multi-hop
+Global options:
 
-Jump chains are built with Go's `golang.org/x/crypto/ssh` — no external `ssh` binary or
-`ProxyJump` directive. Each hop opens an SSH connection and creates a `net.Conn` dialer
-through it, resolving the full chain sequentially.
+- `--config <path>` selects the cbssh tunnel manifest.
+- `--ssh-config <path>` passes an alternate OpenSSH config with `ssh -F`.
 
-### State & daemons
+## Runtime State
 
-Active tunnel processes run as detached daemons managed through a JSON state file.
-On startup, `cbssh` verifies the identity of any PID recorded in the state to prevent
-stale entries from conflicting with reused PIDs.
+Runtime state, private control sockets, and logs live under:
 
-| OS | State file |
+| Platform | State directory |
 |---|---|
-| Linux | `~/.local/state/cbssh/state.json` |
-| macOS | `~/Library/Application Support/cbssh/state.json` |
+| Linux | `~/.local/state/cbssh/`, or `$XDG_STATE_HOME/cbssh/` |
+| macOS | `~/Library/Application Support/cbssh/` |
 
-Tunnel logs are written to `logs/` next to the state file.
+Directories use mode `0700`; state and log files use `0600`. `status` checks
+the OpenSSH control socket and removes stale state. Connections are not
+automatically restarted after a network failure; inspect `logs` and run
+`restart`.
 
-### Security
+## Build
 
-- Passwords are stored as plaintext in the TOML config — set restrictive file permissions:
-  `chmod 600 ~/.config/cbssh/config.toml`
-- `cbssh config validate` warns if the config file is readable by others.
-- The daemon tunnel command is hidden (`cbssh daemon tunnel`) and not meant for direct use.
+```bash
+make build
+make test
+make test-race
+make vet
+make dist
+```
+
+## Upgrading
+
+This is a breaking rewrite. The old `config.toml`, TUI, interactive SSH, SFTP,
+and built-in Go SSH daemon are no longer supported. Move connection settings
+to OpenSSH config and define managed tunnels in the new `tunnels.toml`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

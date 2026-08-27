@@ -2,254 +2,134 @@
 
 [English](README.md)
 
-> SSH 连接与隧道管理器 —— 一次配置，随处连接。
+`cbssh` 是一个精简的后台 SSH 隧道管理器。它不保存主机、用户、密钥或跳板配置，
+而是直接调用系统 OpenSSH 并使用用户已有的 `~/.ssh/config`。
 
-`cbssh` 通过单个 TOML 配置文件管理 SSH 主机、多级跳板链、SFTP 文件传输以及长期运行
-的 SSH 隧道（local / remote / dynamic）。使用 Go 编写，编译后为无外部依赖的单文件。
+同一个 SSH Host 的多条隧道会共享一个由 cbssh 管理的 OpenSSH Master 连接。
 
-## 特性
+## 要求
 
-- 基于终端的 TUI 界面，管理主机和隧道
-- 多级 SSH 跳板，支持链式递归解析
-- SFTP 文件上传/下载，支持递归目录和强制覆盖
-- 交互式远端文件浏览器（TUI）
-- 长期运行的后台隧道（local, remote, SOCKS5 dynamic）
-- TOML 配置，支持语法校验和编辑器内编辑
-- 支持密钥和密码认证，以及 SSH Agent
-
-## 快速开始
-
-```bash
-# 从 GitHub Releases 安装
-# 下载 linux/darwin amd64/arm64 二进制：
-# https://github.com/CmdBlockZQG/cbssh/releases
-
-# 或者使用 Go 安装
-go install github.com/cmdblock/cbssh/cmd/cbssh@latest
-
-# 创建默认配置
-cbssh config init
-
-# 编辑配置，添加你的主机
-cbssh config edit
-
-# 启动仪表盘
-cbssh
-```
-
-## 命令
-
-### 仪表盘
-
-| 命令 | 说明 |
-|---|---|
-| `cbssh` | 打开交互式 TUI（主机列表、隧道、文件浏览） |
-| `cbssh tui` | 同上（显式调用） |
-
-### 主机管理
-
-| 命令 | 说明 |
-|---|---|
-| `cbssh ls [-s recent\|name]` | 列出所有已配置的主机（`-s` / `--sort`） |
-| `cbssh info <name>` | 查看主机详细信息 |
-| `cbssh connect <name>` | 打开交互式 SSH 会话 |
-
-### 文件传输
-
-| 命令 | 说明 |
-|---|---|
-| `cbssh file upload <name> <local> [remote]` | 通过 SFTP 上传文件或目录 |
-| `cbssh file download <name> <remote> [local]` | 通过 SFTP 下载文件或目录 |
-| `cbssh file tui <name>` | 在交互式 TUI 中浏览远端文件 |
-
-文件传输通用选项：`-r, --recursive`（目录传输）、`-f, --force`（覆盖）、`-q, --quiet`。
-
-### 隧道管理
-
-| 命令 | 说明 |
-|---|---|
-| `cbssh tunnel start <name> [tunnel...]` | 启动默认或指定的隧道 |
-| `cbssh tunnel stop [name] [tunnel...]` | 停止活跃隧道 |
-| `cbssh tunnel status [name]` | 查看活跃隧道 |
-
-`start` 省略隧道名称时启动所有标记为默认的隧道；`stop` 省略隧道名称时停止该主机
-**所有**活跃隧道（不区分 `default` 标记）。`stop` / `status` 省略主机名称时作用于所有主机。
-
-### 配置管理
-
-| 命令 | 说明 |
-|---|---|
-| `cbssh config path` | 打印配置文件的路径 |
-| `cbssh config init` | 若配置不存在则创建空配置 |
-| `cbssh config validate` | 校验配置语法和文件权限 |
-| `cbssh config edit` | 用 `$EDITOR` 打开配置文件（回退到 `vi`） |
-
-### 快捷方式
-
-以下顶层命令是 `file` 和 `tunnel`
-子命令的别名：
-
-| 快捷方式 | 等效命令 |
-|---|---|
-| `cbssh c <name>` | `cbssh connect <name>` |
-| `cbssh up <name> <local> [remote]` | `cbssh file upload <name> <local> [remote]` |
-| `cbssh down <name> <remote> [local]` | `cbssh file download <name> <remote> [local]` |
-| `cbssh browse <name>` | `cbssh file tui <name>` |
-| `cbssh status [name]` | `cbssh tunnel status [name]` |
-| `cbssh start <name> [tunnel...]` | `cbssh tunnel start <name> [tunnel...]` |
-| `cbssh stop [name] [tunnel...]` | `cbssh tunnel stop [name] [tunnel...]` |
+- Linux 或 macOS
+- 支持 `-M`、`-S` 以及 `-O forward/cancel/check/exit` 的 OpenSSH 客户端
+- Go 1.26.2 或更新版本（仅源码构建需要）
 
 ## 配置
 
-配置文件默认路径因平台而异：
+默认配置路径：
 
-| 操作系统 | 路径 |
+| 系统 | 路径 |
 |---|---|
-| Linux | `~/.config/cbssh/config.toml` |
-| macOS | `~/Library/Application Support/cbssh/config.toml` |
+| Linux | `~/.config/cbssh/tunnels.toml` |
+| macOS | `~/Library/Application Support/cbssh/tunnels.toml` |
 
-可通过 `--config` 和 `--state` 选项覆盖默认路径（这两个是全局选项，所有命令均可用）。
+先在 OpenSSH 配置中定义连接：
 
-### 完整示例
+```sshconfig
+Host prod
+    HostName 203.0.113.10
+    User ubuntu
+    IdentityFile ~/.ssh/id_ed25519
+    ProxyJump bastion
+    ServerAliveInterval 30
+```
+
+再在 `tunnels.toml` 中定义需要后台管理的转发：
 
 ```toml
-default_key_path = "~/.ssh/id_ed25519"
-host_key_check = "insecure"
+version = 1
 
-[[hosts]]
-name = "bastion"
-host = "203.0.113.10"
-port = 22
-user = "ubuntu"
-
-[hosts.auth]
-type = "key"
-key_path = "~/.ssh/id_ed25519"
-# passphrase = "可选的密钥密码"
-# use_agent = true
-
-[[hosts]]
+[[tunnels]]
 name = "prod-db"
-host = "10.0.1.20"
-port = 22
-user = "ubuntu"
-jump = "bastion"
-
-[hosts.auth]
-type = "password"
-password = "明文密码"
-
-[[hosts.tunnels]]
-name = "mysql"
+host = "prod"
 type = "local"
-listen_host = "127.0.0.1"
-listen_port = 3307
+bind_host = "127.0.0.1"
+bind_port = 15432
 target_host = "127.0.0.1"
-target_port = 3306
-default = true
+target_port = 5432
 
-[[hosts.tunnels]]
-name = "socks"
+[[tunnels]]
+name = "prod-api"
+host = "prod"
+type = "remote"
+bind_host = "127.0.0.1"
+bind_port = 18080
+target_host = "127.0.0.1"
+target_port = 8080
+
+[[tunnels]]
+name = "prod-socks"
+host = "prod"
 type = "dynamic"
-listen_host = "127.0.0.1"
-listen_port = 1080
-default = false
+bind_host = "127.0.0.1"
+bind_port = 1080
 ```
 
-`jump` 通过主机名称引用跳板。`cbssh` 递归解析完整链路 —— 一台主机可以通过跳板机连接，
-跳板机自身也可以再通过其他主机跳转。
+`type` 只能是 `local`、`remote` 或 `dynamic`。`bind_host` 省略时默认为
+`127.0.0.1`。端口范围为 `1..65535`。
 
-`port` 省略时默认为 `22`。`default_key_path` 未设置时默认为
-`~/.ssh/id_ed25519`；同时它也是单个主机省略 `key_path` 时的回退值。
+cbssh 会以 `ClearAllForwardings=yes` 启动自己的 Master，因此 SSH config 中已有的
+`LocalForward`、`RemoteForward` 和 `DynamicForward` 不会被带入。连接、认证、Host Key、
+`Include`、`Match`、`ProxyJump` 和 `ProxyCommand` 等其他 OpenSSH 设置仍正常生效。
 
-### 认证字段
-
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `type` | 否 | `key` 或 `password`；省略时根据其他字段自动推断 |
-| `password` | 密码认证时 | 明文密码 |
-| `key_path` | 否 | 私钥文件路径；空缺时使用 `default_key_path` |
-| `passphrase` | 否 | 加密私钥的密码 |
-| `use_agent` | 否 | 使用 `SSH_AUTH_SOCK` 代理进行密钥认证 |
-
-### 隧道类型
-
-| 类型 | 等价命令 | 需填 |
-|---|---|---|
-| `local` | `ssh -L` | `target_host`, `target_port` |
-| `remote` | `ssh -R` | `target_host`, `target_port` |
-| `dynamic` | `ssh -D` | —（在 `listen_host:listen_port` 启动 SOCKS5 代理） |
-
-### 隧道字段
-
-| 字段 | 必填 | 默认值 | 说明 |
-|---|---|---|---|
-| `name` | 是 | — | 隧道标识符 |
-| `type` | 否 | `local` | `local`、`remote` 或 `dynamic` |
-| `listen_host` | 否 | `127.0.0.1` | 监听地址；`local`/`dynamic` 为本地，`remote` 为远端 |
-| `listen_port` | 是 | — | 监听端口；`local`/`dynamic` 为本地，`remote` 为远端 |
-| `target_host` | `local`/`remote` 时 | — | 目标服务器地址 |
-| `target_port` | `local`/`remote` 时 | — | 目标服务器端口 |
-| `default` | 否 | `false` | 使用 `tunnel start` 时若未指定隧道名则启动此隧道 |
-
-### Host Key 校验
-
-| 值 | 行为 |
-|---|---|
-| `insecure` | 跳过 host key 校验（默认） |
-| `known_hosts` | 使用 `~/.ssh/known_hosts` 进行校验 |
-| `known-hosts` | 等价于 `known_hosts` |
-
-## 从源码构建
-
-从源码安装或编译需要 Go 1.26.2 或更新版本。
+## 命令
 
 ```bash
-# 使用 Go 安装
-go install github.com/cmdblock/cbssh/cmd/cbssh@latest
+cbssh config init
+cbssh config validate
+cbssh list
 
-# 本地编译
-make build                  # → bin/cbssh
+cbssh start prod-db prod-socks
+cbssh start --all
 
-# 交叉编译 (linux/darwin × amd64/arm64)
-make dist                   # → dist/
+cbssh status
+cbssh status prod-db
 
-# 测试
-make test
-make vet
+cbssh stop prod-db
+cbssh stop --all
+cbssh restart prod-db
 
-# 开发模式（使用 .tmp/cbssh/ 存放配置和状态文件）
-make dev-init
-make dev ARGS='ls'
+cbssh logs prod-db
 ```
 
-## 内部机制
+`start` 和 `stop` 必须给出名称或显式使用 `--all`。重复启动或停止是幂等的。
+同一 Host 的最后一条隧道停止后，共享 Master 才会退出。
+单独 `restart` 一条隧道会继续复用同 Host 的现有 Master；修改 SSH config 后请使用
+`restart --all`，或先一次性停止该 Host 的全部隧道再重新启动。
 
-### 多级跳板
+可用全局选项：
 
-跳板链完全基于 Go 的 `golang.org/x/crypto/ssh` 构建 —— 不使用外部 `ssh` 命令或
-`ProxyJump` 指令。每一跳打开一条 SSH 连接并通过该连接创建 `net.Conn` 拨号器，
-按顺序递归完成整个链路。
+- `--config <path>`：指定 cbssh 隧道清单。
+- `--ssh-config <path>`：通过 `ssh -F` 指定 OpenSSH 配置；省略时使用系统默认配置链。
 
-### 状态与守护进程
+## 状态与故障
 
-活跃的隧道进程以后台守护进程方式运行，通过 JSON 状态文件管理。
-启动时 `cbssh` 会校验状态中记录的 PID 的身份，防止过时条目与系统回收的 PID 冲突。
+运行状态、私有 control socket 和日志位于系统状态目录：
 
-| 操作系统 | 状态文件路径 |
+| 系统 | 状态目录 |
 |---|---|
-| Linux | `~/.local/state/cbssh/state.json` |
-| macOS | `~/Library/Application Support/cbssh/state.json` |
+| Linux | `~/.local/state/cbssh/`，或 `$XDG_STATE_HOME/cbssh/` |
+| macOS | `~/Library/Application Support/cbssh/` |
 
-隧道日志写入状态文件同级的 `logs/` 目录。
+目录权限为 `0700`，状态与日志文件权限为 `0600`。`status` 会通过 OpenSSH control
+socket 检查连接，并清理失效状态。网络中断后不会自动重连；请查看 `logs` 并执行
+`restart`。
 
-### 安全
+## 构建
 
-- 密码以明文形式存储在 TOML 配置文件中 —— 请设置严格的权限：
-  `chmod 600 ~/.config/cbssh/config.toml`
-- `cbssh config validate` 会在配置文件对其他用户可读时发出警告。
-- 守护进程隧道命令为隐藏命令（`cbssh daemon tunnel`），不适合直接使用。
+```bash
+make build
+make test
+make test-race
+make vet
+make dist
+```
+
+## 从旧版升级
+
+这是破坏性重写。旧版 `config.toml`、TUI、交互 SSH、SFTP 和自建 Go SSH daemon
+均不再支持。请把主机连接配置迁移到 OpenSSH config，并把需要的隧道写入新的
+`tunnels.toml`。
 
 ## 许可证
 
-MIT — 详见 [LICENSE](LICENSE)。
+MIT，详见 [LICENSE](LICENSE)。

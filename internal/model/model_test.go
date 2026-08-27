@@ -2,33 +2,25 @@ package model
 
 import "testing"
 
-func TestTunnelTargetAddressEmptyForDynamicTunnel(t *testing.T) {
-	tun := Tunnel{
-		Name:       "socks",
-		Type:       TunnelTypeDynamic,
-		ListenHost: "127.0.0.1",
-		ListenPort: 1080,
-	}
-	if got := tun.TargetAddress(); got != "" {
-		t.Fatalf("TargetAddress() = %q, want empty", got)
-	}
-}
-
-func TestTunnelTypeCode(t *testing.T) {
+func TestForwardSpec(t *testing.T) {
 	tests := []struct {
-		value string
-		want  string
+		name string
+		tun  Tunnel
+		flag string
+		spec string
 	}{
-		{TunnelTypeDynamic, "D"},
-		{TunnelTypeLocal, "L"},
-		{TunnelTypeRemote, "R"},
-		{"custom", "custom"},
+		{"local", Tunnel{Type: TunnelTypeLocal, BindHost: "127.0.0.1", BindPort: 15432, TargetHost: "db", TargetPort: 5432}, "-L", "127.0.0.1:15432:db:5432"},
+		{"remote", Tunnel{Type: TunnelTypeRemote, BindHost: "::1", BindPort: 8080, TargetHost: "127.0.0.1", TargetPort: 80}, "-R", "[::1]:8080:127.0.0.1:80"},
+		{"dynamic", Tunnel{Type: TunnelTypeDynamic, BindHost: "127.0.0.1", BindPort: 1080}, "-D", "127.0.0.1:1080"},
 	}
-
 	for _, tt := range tests {
-		t.Run(tt.value, func(t *testing.T) {
-			if got := TunnelTypeCode(tt.value); got != tt.want {
-				t.Fatalf("TunnelTypeCode(%q) = %q, want %q", tt.value, got, tt.want)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.tun.ForwardSpec()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.spec || tt.tun.ForwardFlag() != tt.flag {
+				t.Fatalf("forward = %s %s, want %s %s", tt.tun.ForwardFlag(), got, tt.flag, tt.spec)
 			}
 		})
 	}

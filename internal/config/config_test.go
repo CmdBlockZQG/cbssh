@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,133 +10,60 @@ import (
 	"github.com/cmdblock/cbssh/internal/model"
 )
 
-func TestResolveChainOrdersJumpHostsBeforeTarget(t *testing.T) {
-	cfg := model.Config{
-		Hosts: []model.Host{
-			host("target", "jump2"),
-			host("jump1", ""),
-			host("jump2", "jump1"),
-		},
+func TestLoadNormalizesBindHost(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "tunnels.toml")
+	data := "version = 1\n[[tunnels]]\nname = \"db\"\nhost = \"prod\"\ntype = \"local\"\nbind_port = 15432\ntarget_host = \"db\"\ntarget_port = 5432\n"
+	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	cfg.Normalize()
-
-	chain, err := ResolveChain(cfg, "target")
+	cfg, err := Load(path)
 	if err != nil {
-		t.Fatalf("ResolveChain returned error: %v", err)
+		t.Fatal(err)
 	}
-	got := []string{chain[0].Name, chain[1].Name, chain[2].Name}
-	want := []string{"jump1", "jump2", "target"}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("chain[%d] = %q, want %q", i, got[i], want[i])
-		}
+	if cfg.Tunnels[0].BindHost != "127.0.0.1" {
+		t.Fatalf("BindHost = %q", cfg.Tunnels[0].BindHost)
 	}
 }
 
-func TestValidateRejectsJumpCycle(t *testing.T) {
-	cfg := model.Config{
-		Hosts: []model.Host{
-			host("a", "b"),
-			host("b", "a"),
-		},
-	}
-	cfg.Normalize()
-
-	err := Validate(cfg)
-	if err == nil || !strings.Contains(err.Error(), "jump cycle") {
-		t.Fatalf("Validate error = %v, want jump cycle error", err)
-	}
-}
-
-func TestValidateRejectsUnsupportedHostKeyCheck(t *testing.T) {
-	cfg := model.Config{
-		HostKeyCheck: "strict",
-		Hosts:        []model.Host{host("target", "")},
-	}
-
-	err := Validate(cfg)
-	if err == nil || !strings.Contains(err.Error(), "unsupported host_key_check") {
-		t.Fatalf("Validate error = %v, want unsupported host_key_check error", err)
-	}
-}
-
-func TestSelectTunnelsUsesDefaultWhenNamesAreEmpty(t *testing.T) {
-	h := host("target", "")
-	h.Tunnels = []model.Tunnel{
-		tunnel("tun1", true),
-		tunnel("tun2", false),
-	}
-
-	selected, err := SelectTunnels(h, nil)
-	if err != nil {
-		t.Fatalf("SelectTunnels returned error: %v", err)
-	}
-	if len(selected) != 1 || selected[0].Name != "tun1" {
-		t.Fatalf("selected = %#v, want only tun1", selected)
-	}
-}
-
-func TestSelectTunnelsRejectsDuplicateNames(t *testing.T) {
-	h := host("target", "")
-	h.Tunnels = []model.Tunnel{
-		tunnel("tun1", true),
-	}
-
-	_, err := SelectTunnels(h, []string{"tun1", "tun1"})
-	if err == nil || !strings.Contains(err.Error(), "duplicate selected tunnel") {
-		t.Fatalf("SelectTunnels error = %v, want duplicate selected tunnel error", err)
+func TestValidateRejectsDynamicTarget(t *testing.T) {
+	tun := model.Tunnel{Name: "socks", Host: "prod", Type: model.TunnelTypeDynamic, BindHost: "127.0.0.1", BindPort: 1080, TargetHost: "unexpected"}
+	err := Validate(model.Config{Version: 1, Tunnels: []model.Tunnel{tun}})
+	if err == nil || !strings.Contains(err.Error(), "must not define a target") {
+		t.Fatalf("Validate() error = %v", err)
 	}
 }
 
 func TestLoadRejectsUnknownFields(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.toml")
-	data := `
-default_key_path = "~/.ssh/id_ed25519"
-unexpected = true
-
-[[hosts]]
-name = "prod"
-host = "10.0.0.1"
-port = 22
-user = "ubuntu"
-
-[hosts.auth]
-type = "password"
-password = "secret"
-`
-	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
+	path := filepath.Join(t.TempDir(), "tunnels.toml")
+	if err := os.WriteFile(path, []byte("version = 1\nunexpected = true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-
 	_, err := Load(path)
 	if err == nil || !strings.Contains(err.Error(), "unknown config fields") {
-		t.Fatalf("Load error = %v, want unknown field error", err)
+		t.Fatalf("Load() error = %v", err)
 	}
 }
 
-func host(name string, jump string) model.Host {
-	return model.Host{
-		Name: name,
-		Host: "127.0.0.1",
-		Port: 22,
-		User: "user",
-		Jump: jump,
-		Auth: model.Auth{
-			Type:     model.AuthTypePassword,
-			Password: "secret",
-		},
+func TestSelectRequiresExplicitAll(t *testing.T) {
+	cfg := model.Config{Version: 1, Tunnels: []model.Tunnel{{Name: "one"}, {Name: "two"}}}
+	if _, err := Select(cfg, nil, false); err == nil {
+		t.Fatal("Select() error = nil without names or --all")
+	}
+	selected, err := Select(cfg, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(selected) != 2 {
+		t.Fatalf("selected = %d, want 2", len(selected))
 	}
 }
 
-func tunnel(name string, def bool) model.Tunnel {
-	return model.Tunnel{
-		Name:       name,
-		Type:       model.TunnelTypeLocal,
-		ListenHost: "127.0.0.1",
-		ListenPort: 10000,
-		TargetHost: "127.0.0.1",
-		TargetPort: 10001,
-		Default:    def,
+func TestInitNeverOverwritesExistingConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "tunnels.toml")
+	if err := Init(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(path); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("second Init() error = %v, want ErrAlreadyExists", err)
 	}
 }
