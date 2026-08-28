@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/cmdblock/cbssh/internal/atomicfile"
-	"github.com/cmdblock/cbssh/internal/model"
-	"github.com/cmdblock/cbssh/internal/platform"
+	"github.com/CmdBlockZQG/cbssh/internal/atomicfile"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/platform"
 )
 
 const (

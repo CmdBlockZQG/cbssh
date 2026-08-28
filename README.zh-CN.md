@@ -2,10 +2,8 @@
 
 [English](README.md)
 
-`cbssh` 是一个精简的后台 SSH 隧道管理器。它不保存主机、用户、密钥或跳板配置，
-而是直接调用系统 OpenSSH 并使用用户已有的 `~/.ssh/config`。
-
-同一个 SSH Host 的多条隧道会共享一个由 cbssh 管理的 OpenSSH Master 连接。
+`cbssh` 是一个精简的后台 SSH 隧道管理器。它直接调用系统 OpenSSH 并使用用户已有的
+`~/.ssh/config`。
 
 ## 要求
 
@@ -77,6 +75,7 @@ cbssh 会以 `ClearAllForwardings=yes` 启动自己的 Master，因此 SSH confi
 cbssh config init
 cbssh config validate
 cbssh list
+cbssh ls
 
 cbssh start prod-db prod-socks
 cbssh start --all
@@ -124,11 +123,12 @@ make vet
 make dist
 ```
 
-## 从旧版升级
+## 与 v1.0 的区别
 
-这是破坏性重写。旧版 `config.toml`、TUI、交互 SSH、SFTP 和自建 Go SSH daemon
-均不再支持。请把主机连接配置迁移到 OpenSSH config，并把需要的隧道写入新的
-`tunnels.toml`。
+v1.0 是由 cbssh 自行保存 SSH 主机与认证配置、并使用内置 Go SSH 客户端的版本，包含
+TUI、交互 SSH、SFTP 和后台隧道功能。
+
+当前版本是破坏性重构，旧版 `config.toml` 不能直接用于当前版本。
 
 ## 许可证
 

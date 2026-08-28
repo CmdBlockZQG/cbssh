@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cmdblock/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
 )
 
 func TestLoadNormalizesBindHost(t *testing.T) {

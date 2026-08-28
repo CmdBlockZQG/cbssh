@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cmdblock/cbssh/internal/cmd"
+	"github.com/CmdBlockZQG/cbssh/internal/cmd"
 )
 
 var version = "dev"

@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/cmdblock/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
 )
 
 type Master struct {

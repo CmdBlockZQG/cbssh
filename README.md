@@ -2,12 +2,8 @@
 
 [简体中文](README.zh-CN.md)
 
-`cbssh` is a small background SSH tunnel manager. It does not store hosts,
-users, keys, or jump hosts. Instead, it invokes the system OpenSSH client and
-uses the user's existing `~/.ssh/config`.
-
-Multiple tunnels that reference the same SSH Host share one cbssh-managed
-OpenSSH Master connection.
+`cbssh` is a small background SSH tunnel manager. It invokes the system OpenSSH
+client and uses the user's existing `~/.ssh/config`.
 
 ## Requirements
 
@@ -71,6 +67,7 @@ All other OpenSSH behavior, including authentication, host key checking,
 cbssh config init
 cbssh config validate
 cbssh list
+cbssh ls
 
 cbssh start prod-db prod-socks
 cbssh start --all
@@ -116,11 +113,13 @@ make vet
 make dist
 ```
 
-## Upgrading
+## Differences from v1.0
 
-This is a breaking rewrite. The old `config.toml`, TUI, interactive SSH, SFTP,
-and built-in Go SSH daemon are no longer supported. Move connection settings
-to OpenSSH config and define managed tunnels in the new `tunnels.toml`.
+v1.0 stored SSH hosts and authentication settings itself and used a built-in
+Go SSH client. It had TUI, interactive SSH, SFTP, and background tunnels.
+
+The current version is a breaking rewrite; the old `config.toml`
+cannot be used directly.
 
 ## License
 

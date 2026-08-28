@@ -11,11 +11,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cmdblock/cbssh/internal/config"
-	"github.com/cmdblock/cbssh/internal/model"
-	"github.com/cmdblock/cbssh/internal/openssh"
-	"github.com/cmdblock/cbssh/internal/platform"
-	"github.com/cmdblock/cbssh/internal/tunnel"
+	"github.com/CmdBlockZQG/cbssh/internal/config"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/openssh"
+	"github.com/CmdBlockZQG/cbssh/internal/platform"
+	"github.com/CmdBlockZQG/cbssh/internal/tunnel"
 )
 
 type app struct {
@@ -59,9 +59,10 @@ func (a *app) manager() *tunnel.Manager {
 
 func (a *app) newListCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "list",
-		Short: "List configured tunnels",
-		Args:  cobra.NoArgs,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List configured tunnels",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load(a.configPath)
 			if err != nil {

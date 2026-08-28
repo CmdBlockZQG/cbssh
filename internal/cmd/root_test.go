@@ -17,11 +17,13 @@ func TestListAndStoppedStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	output := execute(t, "--config", configPath, "--state", statePath, "list")
-	if !strings.Contains(output, "db") || !strings.Contains(output, "-L 127.0.0.1:15432:db:5432") {
-		t.Fatalf("list output = %q", output)
+	for _, commandName := range []string{"list", "ls"} {
+		output := execute(t, "--config", configPath, "--state", statePath, commandName)
+		if !strings.Contains(output, "db") || !strings.Contains(output, "-L 127.0.0.1:15432:db:5432") {
+			t.Fatalf("%s output = %q", commandName, output)
+		}
 	}
-	output = execute(t, "--config", configPath, "--state", statePath, "status")
+	output := execute(t, "--config", configPath, "--state", statePath, "status")
 	if !strings.Contains(output, "stopped") {
 		t.Fatalf("status output = %q", output)
 	}

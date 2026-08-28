@@ -1,4 +1,4 @@
-module github.com/cmdblock/cbssh
+module github.com/CmdBlockZQG/cbssh
 
 go 1.26.2
 

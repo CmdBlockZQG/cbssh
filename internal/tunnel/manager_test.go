@@ -7,9 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cmdblock/cbssh/internal/model"
-	"github.com/cmdblock/cbssh/internal/openssh"
-	"github.com/cmdblock/cbssh/internal/state"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/openssh"
+	"github.com/CmdBlockZQG/cbssh/internal/state"
 )
 
 type fakeRunner struct {

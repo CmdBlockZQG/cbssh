@@ -13,10 +13,10 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/cmdblock/cbssh/internal/model"
-	"github.com/cmdblock/cbssh/internal/openssh"
-	"github.com/cmdblock/cbssh/internal/platform"
-	"github.com/cmdblock/cbssh/internal/state"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/openssh"
+	"github.com/CmdBlockZQG/cbssh/internal/platform"
+	"github.com/CmdBlockZQG/cbssh/internal/state"
 )
 
 type Options struct {

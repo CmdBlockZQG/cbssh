@@ -10,9 +10,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/cmdblock/cbssh/internal/atomicfile"
-	"github.com/cmdblock/cbssh/internal/model"
-	"github.com/cmdblock/cbssh/internal/platform"
+	"github.com/CmdBlockZQG/cbssh/internal/atomicfile"
+	"github.com/CmdBlockZQG/cbssh/internal/model"
+	"github.com/CmdBlockZQG/cbssh/internal/platform"
 )
 
 var tunnelNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
