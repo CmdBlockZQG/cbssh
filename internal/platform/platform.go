@@ -3,7 +3,6 @@ package platform
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -37,37 +36,27 @@ func CanonicalPath(path string) string {
 	return path
 }
 
-func DefaultConfigPath() string {
-	if value := os.Getenv("CBSSH_CONFIG"); value != "" {
-		return ExpandPath(value)
-	}
-	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "cbssh", "tunnels.toml")
-	}
-	return filepath.Join(".", "tunnels.toml")
+type Layout struct {
+	Dir        string
+	ConfigPath string
+	StatePath  string
 }
 
-func DefaultStatePath() string {
-	if value := os.Getenv("CBSSH_STATE"); value != "" {
-		return ExpandPath(value)
-	}
-	if runtime.GOOS == "darwin" {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, "Library", "Application Support", "cbssh", "runtime.json")
-		}
-	}
-	if value := os.Getenv("XDG_STATE_HOME"); value != "" {
-		return filepath.Join(ExpandPath(value), "cbssh", "runtime.json")
-	}
+func DefaultDir() string {
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".local", "state", "cbssh", "runtime.json")
+		return filepath.Join(home, ".cbssh")
 	}
-	return filepath.Join(".", "runtime.json")
+	return filepath.Join(".", ".cbssh")
 }
 
-func RuntimeDir(statePath string) string {
-	if statePath == "" {
-		statePath = DefaultStatePath()
+func ResolveLayout(dir string) Layout {
+	if dir == "" {
+		dir = DefaultDir()
 	}
-	return filepath.Dir(ExpandPath(statePath))
+	dir = filepath.Clean(ExpandPath(dir))
+	return Layout{
+		Dir:        dir,
+		ConfigPath: filepath.Join(dir, "tunnels.toml"),
+		StatePath:  filepath.Join(dir, "runtime.json"),
+	}
 }

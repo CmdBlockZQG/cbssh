@@ -20,16 +20,15 @@ import (
 )
 
 type Options struct {
-	ConfigPath    string
+	Dir           string
 	SSHConfigPath string
-	StatePath     string
 	Runner        openssh.Runner
 }
 
 type Manager struct {
 	Namespace     string
 	SSHConfigPath string
-	RuntimeDir    string
+	Dir           string
 	Store         *state.Store
 	Runner        openssh.Runner
 }
@@ -51,19 +50,16 @@ type Status struct {
 }
 
 func NewManager(opts Options) *Manager {
-	statePath := opts.StatePath
-	if statePath == "" {
-		statePath = platform.DefaultStatePath()
-	}
+	layout := platform.ResolveLayout(opts.Dir)
 	runner := opts.Runner
 	if runner == nil {
 		runner = openssh.NewCommandRunner()
 	}
 	return &Manager{
-		Namespace:     platform.CanonicalPath(opts.ConfigPath),
+		Namespace:     platform.CanonicalPath(layout.ConfigPath),
 		SSHConfigPath: platform.CanonicalPath(opts.SSHConfigPath),
-		RuntimeDir:    platform.RuntimeDir(statePath),
-		Store:         state.NewStore(statePath),
+		Dir:           layout.Dir,
+		Store:         state.NewStore(layout.StatePath),
 		Runner:        runner,
 	}
 }
@@ -96,7 +92,7 @@ func (m *Manager) Start(ctx context.Context, definition model.Tunnel) (Action, e
 		now := time.Now()
 		if newMaster {
 			master = desired
-			master.LogPath = filepath.Join(m.RuntimeDir, "logs", fmt.Sprintf("%s-%d.log", master.ID, now.UnixNano()))
+			master.LogPath = filepath.Join(m.Dir, "logs", fmt.Sprintf("%s-%d.log", master.ID, now.UnixNano()))
 			if err := m.prepareMaster(master); err != nil {
 				return err
 			}
@@ -521,8 +517,8 @@ func (m *Manager) masterFor(definition model.Tunnel) state.MasterRuntime {
 	id := stableID(m.Namespace, m.SSHConfigPath, definition.Host)
 	return state.MasterRuntime{
 		ID: id, Namespace: m.Namespace, Host: definition.Host, SSHConfigPath: m.SSHConfigPath,
-		ControlPath: filepath.Join(m.RuntimeDir, "sockets", id+".sock"),
-		LogPath:     filepath.Join(m.RuntimeDir, "logs", id+".log"),
+		ControlPath: filepath.Join(m.Dir, "sockets", id+".sock"),
+		LogPath:     filepath.Join(m.Dir, "logs", id+".log"),
 		Phase:       state.PhaseActive,
 	}
 }
@@ -532,7 +528,7 @@ func (m *Manager) tunnelID(name string) string {
 }
 
 func (m *Manager) withMasterLock(masterID string, run func() error) error {
-	lockDir := filepath.Join(m.RuntimeDir, "locks")
+	lockDir := filepath.Join(m.Dir, "locks")
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
 		return err
 	}

@@ -13,12 +13,7 @@ client and uses the user's existing `~/.ssh/config`.
 
 ## Configuration
 
-Default manifest paths:
-
-| Platform | Path |
-|---|---|
-| Linux | `~/.config/cbssh/tunnels.toml` |
-| macOS | `~/Library/Application Support/cbssh/tunnels.toml` |
+The tunnel manifest is `~/.cbssh/tunnels.toml` by default.
 
 Define the connection in OpenSSH first:
 
@@ -64,8 +59,8 @@ All other OpenSSH behavior, including authentication, host key checking,
 ## Commands
 
 ```bash
-cbssh config init
-cbssh config validate
+cbssh init
+cbssh validate
 cbssh list
 cbssh ls
 
@@ -86,17 +81,13 @@ starting them again.
 
 Global options:
 
-- `--config <path>` selects the cbssh tunnel manifest.
+- `--dir <path>` selects the cbssh configuration and runtime directory.
 - `--ssh-config <path>` passes an alternate OpenSSH config with `ssh -F`.
 
-## Runtime State
+## Data Directory
 
-Runtime state, private control sockets, and logs live under:
-
-| Platform | State directory |
-|---|---|
-| Linux | `~/.local/state/cbssh/`, or `$XDG_STATE_HOME/cbssh/` |
-| macOS | `~/Library/Application Support/cbssh/` |
+cbssh keeps `tunnels.toml`, `runtime.json`, private control sockets, locks, and
+logs together under `~/.cbssh/`. `--dir` moves the complete layout as one unit.
 
 Directories use mode `0700`; state and log files use `0600`. `status` checks
 the OpenSSH control socket and removes stale state. Connections are not

@@ -3,17 +3,14 @@ CMD := ./cmd/cbssh
 BIN_DIR := bin
 DIST_DIR := dist
 DEV_DIR := .tmp/cbssh
-DEV_CONFIG := $(DEV_DIR)/tunnels.toml
-DEV_STATE := $(DEV_DIR)/runtime.json
 
 GO ?= go
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS ?= -s -w -X main.version=$(VERSION)
 ARGS ?=
-CONFIG ?=
-STATE ?=
+DIR ?=
 
-RUN_FLAGS := $(if $(CONFIG),--config $(CONFIG),) $(if $(STATE),--state $(STATE),)
+RUN_FLAGS := $(if $(DIR),--dir $(DIR),)
 
 .PHONY: help run dev dev-init build install test test-race vet fmt tidy clean clean-dist dist release \
 	build-linux-amd64 build-linux-arm64 build-darwin-amd64 build-darwin-arm64
@@ -21,11 +18,11 @@ RUN_FLAGS := $(if $(CONFIG),--config $(CONFIG),) $(if $(STATE),--state $(STATE),
 help:
 	@printf "cbssh development targets\n\n"
 	@printf "Usage:\n"
-	@printf "  make <target> [ARGS='...'] [CONFIG=...] [STATE=...] [VERSION=...]\n\n"
+	@printf "  make <target> [ARGS='...'] [DIR=...] [VERSION=...]\n\n"
 	@printf "Targets:\n"
 	@printf "  run                 Run cbssh with the default user config\n"
-	@printf "  dev                 Run cbssh with local tunnel config/state under .tmp/cbssh\n"
-	@printf "  dev-init            Create local debug config/state paths\n"
+	@printf "  dev                 Run cbssh with local data under .tmp/cbssh\n"
+	@printf "  dev-init            Initialize the local debug directory\n"
 	@printf "  build               Build local binary into bin/cbssh\n"
 	@printf "  dist                Build linux/darwin amd64/arm64 binaries into dist/\n"
 	@printf "  release             Alias of dist\n"
@@ -37,7 +34,7 @@ help:
 	@printf "  clean               Remove local build outputs\n\n"
 	@printf "Examples:\n"
 	@printf "  make run ARGS='list'\n"
-	@printf "  make dev ARGS='config validate'\n"
+	@printf "  make dev ARGS='validate'\n"
 	@printf "  make build VERSION=0.1.0\n"
 	@printf "  make dist VERSION=0.1.0\n"
 
@@ -45,13 +42,12 @@ run:
 	$(GO) run $(CMD) $(RUN_FLAGS) $(ARGS)
 
 dev: dev-init
-	$(GO) run $(CMD) --config $(DEV_CONFIG) --state $(DEV_STATE) $(ARGS)
+	$(GO) run $(CMD) --dir $(DEV_DIR) $(ARGS)
 
 dev-init:
 	@mkdir -p $(DEV_DIR)
-	@$(GO) run $(CMD) --config $(DEV_CONFIG) --state $(DEV_STATE) config init >/dev/null
-	@printf "Debug config: %s\n" "$(DEV_CONFIG)"
-	@printf "Debug state:  %s\n" "$(DEV_STATE)"
+	@$(GO) run $(CMD) --dir $(DEV_DIR) init >/dev/null
+	@printf "Debug directory: %s\n" "$(DEV_DIR)"
 
 build:
 	@mkdir -p $(BIN_DIR)

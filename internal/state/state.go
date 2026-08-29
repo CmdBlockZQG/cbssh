@@ -61,9 +61,6 @@ type Store struct {
 }
 
 func NewStore(path string) *Store {
-	if path == "" {
-		path = platform.DefaultStatePath()
-	}
 	return &Store{Path: platform.ExpandPath(path)}
 }
 

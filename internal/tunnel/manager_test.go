@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"sync"
 	"testing"
 
@@ -234,9 +233,8 @@ func testManager(t *testing.T) (*Manager, *fakeRunner) {
 	dir := t.TempDir()
 	runner := newFakeRunner()
 	manager := NewManager(Options{
-		ConfigPath: filepath.Join(dir, "tunnels.toml"),
-		StatePath:  filepath.Join(dir, "runtime.json"),
-		Runner:     runner,
+		Dir:    dir,
+		Runner: runner,
 	})
 	return manager, runner
 }

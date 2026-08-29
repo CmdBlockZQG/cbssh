@@ -13,12 +13,7 @@
 
 ## 配置
 
-默认配置路径：
-
-| 系统 | 路径 |
-|---|---|
-| Linux | `~/.config/cbssh/tunnels.toml` |
-| macOS | `~/Library/Application Support/cbssh/tunnels.toml` |
+隧道清单默认位于 `~/.cbssh/tunnels.toml`。
 
 先在 OpenSSH 配置中定义连接：
 
@@ -72,8 +67,8 @@ cbssh 会以 `ClearAllForwardings=yes` 启动自己的 Master，因此 SSH confi
 ## 命令
 
 ```bash
-cbssh config init
-cbssh config validate
+cbssh init
+cbssh validate
 cbssh list
 cbssh ls
 
@@ -97,17 +92,13 @@ cbssh logs prod-db
 
 可用全局选项：
 
-- `--config <path>`：指定 cbssh 隧道清单。
+- `--dir <path>`：指定 cbssh 的配置与运行目录。
 - `--ssh-config <path>`：通过 `ssh -F` 指定 OpenSSH 配置；省略时使用系统默认配置链。
 
-## 状态与故障
+## 数据目录与故障
 
-运行状态、私有 control socket 和日志位于系统状态目录：
-
-| 系统 | 状态目录 |
-|---|---|
-| Linux | `~/.local/state/cbssh/`，或 `$XDG_STATE_HOME/cbssh/` |
-| macOS | `~/Library/Application Support/cbssh/` |
+cbssh 将 `tunnels.toml`、`runtime.json`、私有 control socket、锁和日志统一保存在
+`~/.cbssh/`。使用 `--dir` 时会整体切换这套目录布局。
 
 目录权限为 `0700`，状态与日志文件权限为 `0600`。`status` 会通过 OpenSSH control
 socket 检查连接，并清理失效状态。网络中断后不会自动重连；请查看 `logs` 并执行

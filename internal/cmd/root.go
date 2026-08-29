@@ -19,9 +19,8 @@ import (
 )
 
 type app struct {
-	configPath    string
+	dir           string
 	sshConfigPath string
-	statePath     string
 }
 
 func NewRootCommand(version string) *cobra.Command {
@@ -36,10 +35,8 @@ func NewRootCommand(version string) *cobra.Command {
 			return cmd.Help()
 		},
 	}
-	root.PersistentFlags().StringVar(&a.configPath, "config", platform.DefaultConfigPath(), "Path to tunnels.toml")
+	root.PersistentFlags().StringVar(&a.dir, "dir", platform.DefaultDir(), "Directory for cbssh configuration and runtime data")
 	root.PersistentFlags().StringVar(&a.sshConfigPath, "ssh-config", "", "Optional OpenSSH config passed with ssh -F")
-	root.PersistentFlags().StringVar(&a.statePath, "state", platform.DefaultStatePath(), "Path to the runtime registry")
-	_ = root.PersistentFlags().MarkHidden("state")
 
 	root.AddCommand(a.newListCommand())
 	root.AddCommand(a.newStartCommand())
@@ -47,14 +44,19 @@ func NewRootCommand(version string) *cobra.Command {
 	root.AddCommand(a.newRestartCommand())
 	root.AddCommand(a.newStatusCommand())
 	root.AddCommand(a.newLogsCommand())
-	root.AddCommand(a.newConfigCommand())
+	root.AddCommand(a.newInitCommand())
+	root.AddCommand(a.newValidateCommand())
 	return root
 }
 
 func (a *app) manager() *tunnel.Manager {
 	return tunnel.NewManager(tunnel.Options{
-		ConfigPath: a.configPath, SSHConfigPath: a.sshConfigPath, StatePath: a.statePath,
+		Dir: a.dir, SSHConfigPath: a.sshConfigPath,
 	})
+}
+
+func (a *app) configPath() string {
+	return platform.ResolveLayout(a.dir).ConfigPath
 }
 
 func (a *app) newListCommand() *cobra.Command {
@@ -64,7 +66,7 @@ func (a *app) newListCommand() *cobra.Command {
 		Short:   "List configured tunnels",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(a.configPath)
+			cfg, err := config.Load(a.configPath())
 			if err != nil {
 				return err
 			}
@@ -81,7 +83,7 @@ func (a *app) newStartCommand() *cobra.Command {
 		Short: "Start named tunnels",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(a.configPath)
+			cfg, err := config.Load(a.configPath())
 			if err != nil {
 				return err
 			}
@@ -170,7 +172,7 @@ func (a *app) newRestartCommand() *cobra.Command {
 		Short: "Restart named tunnels with their current definitions",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(a.configPath)
+			cfg, err := config.Load(a.configPath())
 			if err != nil {
 				return err
 			}
@@ -228,7 +230,7 @@ func (a *app) newStatusCommand() *cobra.Command {
 			if err := rejectDuplicateNames(args); err != nil {
 				return err
 			}
-			cfg, err := config.Load(a.configPath)
+			cfg, err := config.Load(a.configPath())
 			if err != nil {
 				return err
 			}
@@ -270,33 +272,28 @@ func (a *app) newLogsCommand() *cobra.Command {
 	}
 }
 
-func (a *app) newConfigCommand() *cobra.Command {
-	command := &cobra.Command{Use: "config", Short: "Manage the tunnel manifest", RunE: func(cmd *cobra.Command, args []string) error { return cmd.Help() }}
-	command.AddCommand(&cobra.Command{
-		Use: "path", Short: "Print the tunnel manifest path", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Fprintln(cmd.OutOrStdout(), platform.ExpandPath(a.configPath))
-			return nil
-		},
-	})
-	command.AddCommand(&cobra.Command{
+func (a *app) newInitCommand() *cobra.Command {
+	return &cobra.Command{
 		Use: "init", Short: "Create an empty tunnel manifest", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := config.Init(a.configPath); err != nil {
+			if err := config.Init(a.configPath()); err != nil {
 				if errors.Is(err, config.ErrAlreadyExists) {
-					fmt.Fprintf(cmd.OutOrStdout(), "Config already exists: %s\n", platform.ExpandPath(a.configPath))
+					fmt.Fprintf(cmd.OutOrStdout(), "Config already exists: %s\n", a.configPath())
 					return nil
 				}
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Created %s\n", platform.ExpandPath(a.configPath))
+			fmt.Fprintf(cmd.OutOrStdout(), "Created %s\n", a.configPath())
 			return nil
 		},
-	})
-	command.AddCommand(&cobra.Command{
+	}
+}
+
+func (a *app) newValidateCommand() *cobra.Command {
+	return &cobra.Command{
 		Use: "validate", Short: "Validate the tunnel manifest and referenced SSH hosts", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(a.configPath)
+			cfg, err := config.Load(a.configPath())
 			if err != nil {
 				return err
 			}
@@ -318,8 +315,7 @@ func (a *app) newConfigCommand() *cobra.Command {
 			fmt.Fprintf(cmd.OutOrStdout(), "Valid tunnel config: %d tunnel(s), %d SSH host(s).\n", len(cfg.Tunnels), len(hosts))
 			return nil
 		},
-	})
-	return command
+	}
 }
 
 func writeTunnelList(output io.Writer, tunnels []model.Tunnel) {

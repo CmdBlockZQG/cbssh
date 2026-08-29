@@ -11,32 +11,32 @@ import (
 func TestListAndStoppedStatus(t *testing.T) {
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "tunnels.toml")
-	statePath := filepath.Join(dir, "runtime.json")
 	data := "version = 1\n[[tunnels]]\nname = \"db\"\nhost = \"prod\"\ntype = \"local\"\nbind_port = 15432\ntarget_host = \"db\"\ntarget_port = 5432\n"
 	if err := os.WriteFile(configPath, []byte(data), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	for _, commandName := range []string{"list", "ls"} {
-		output := execute(t, "--config", configPath, "--state", statePath, commandName)
+		output := execute(t, "--dir", dir, commandName)
 		if !strings.Contains(output, "db") || !strings.Contains(output, "-L 127.0.0.1:15432:db:5432") {
 			t.Fatalf("%s output = %q", commandName, output)
 		}
 	}
-	output := execute(t, "--config", configPath, "--state", statePath, "status")
+	output := execute(t, "--dir", dir, "status")
 	if !strings.Contains(output, "stopped") {
 		t.Fatalf("status output = %q", output)
 	}
 }
 
 func TestConfigInitIsIdempotent(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "tunnels.toml")
-	execute(t, "--config", path, "config", "init")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tunnels.toml")
+	execute(t, "--dir", dir, "init")
 	first, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	output := execute(t, "--config", path, "config", "init")
+	output := execute(t, "--dir", dir, "init")
 	if !strings.Contains(output, "already exists") {
 		t.Fatalf("second init output = %q", output)
 	}
