@@ -56,7 +56,7 @@ func (r *CommandRunner) StartMaster(ctx context.Context, master Master) error {
 		"-o", "LogLevel=ERROR",
 		master.Host,
 	)
-	if _, err := r.run(ctx, true, args...); err != nil {
+	if err := r.runBackground(ctx, args...); err != nil {
 		return fmt.Errorf("start OpenSSH master for %s: %w (log: %s)", master.Host, err, master.LogPath)
 	}
 	return nil
@@ -140,6 +140,38 @@ func (r *CommandRunner) run(ctx context.Context, interactive bool, args ...strin
 		err = fmt.Errorf("%w: %s", err, message)
 	}
 	return message, err
+}
+
+// runBackground starts ssh with direct file descriptors. A ProxyJump creates a
+// helper ssh process that can outlive the foreground ssh -f process. If the
+// streams are connected through os/exec pipes, that helper keeps the pipe open
+// and Cmd.Run waits forever for EOF.
+func (r *CommandRunner) runBackground(ctx context.Context, args ...string) error {
+	binary := r.Binary
+	if binary == "" {
+		binary = "ssh"
+	}
+	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd.Stdin = directReader(r.Stdin)
+	cmd.Stdout = directWriter(r.Stdout)
+	cmd.Stderr = directWriter(r.Stderr)
+	return cmd.Run()
+}
+
+func directReader(reader io.Reader) io.Reader {
+	// A non-file reader would make os/exec create a pipe and wait for it.
+	if file, ok := reader.(*os.File); ok {
+		return file
+	}
+	return nil
+}
+
+func directWriter(writer io.Writer) io.Writer {
+	// nil makes os/exec use /dev/null directly instead of creating a pipe.
+	if file, ok := writer.(*os.File); ok {
+		return file
+	}
+	return nil
 }
 
 func writerOrDiscard(writer io.Writer) io.Writer {
